@@ -3,10 +3,6 @@
 # Description
 ***  
 
-Ingame Map Download allows you to download maps easly while you are ingame
+Ingame Map Download allows you to download maps easly while you are ingame.
 
-
-# How to
-***  
-  
-[Go To Wiki](https://bitbucket.org/Popoklopsi/ingame-map-download/wiki/Home)
+[Find out how to install](https://bitbucket.org/Popoklopsi/ingame-map-download/wiki/Home)
