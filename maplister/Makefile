@@ -26,7 +26,7 @@ CURL = ../curl/
 SQLITE3 = ../sqlite3/
 OPENSSL = ../openssl
 
-BINARY = gamebanana
+BINARY = gamebanana.bin
 
 
 OBJECTS += main.cpp
