@@ -37,6 +37,9 @@
 // Auto append config
 #include <autoexecconfig>
 
+// Downloads Table
+#include <sdktools>
+
 // Escaping
 #include <stringescape>
 
@@ -146,6 +149,7 @@ new bool:g_bUpdate;
 new bool:g_bUpdateDB;
 new bool:g_bDBLoaded;
 new bool:g_bSearch;
+new bool:g_bDownloadList;
 
 
 // Global ints
@@ -175,6 +179,7 @@ new Handle:g_hFTPPath;
 new Handle:g_hDatabase;
 new Handle:g_hGameChoice;
 new Handle:g_hHudSync;
+new Handle:g_hDownloadList;
 
 
 
@@ -290,6 +295,7 @@ public OnPluginStart()
 	g_hSearch = AutoExecConfig_CreateConVar("mapdownload_search", "1", "1 = Search searchmask within a string, 0 = Search excact mask");
 	g_hMapCycle = AutoExecConfig_CreateConVar("mapdownload_mapcycle", "1", "1 = Write downloaded map in mapcycle.txt, 0 = Off");
 	g_hNotice = AutoExecConfig_CreateConVar("mapdownload_notice", "1", "1 = Notice admins on server that Map Download runs, 0 = Off");
+	g_hDownloadList = AutoExecConfig_CreateConVar("mapdownload_downloadlist", "1", "1 = Add custom files of map to intern downloadlist, 0 = Off");
 	g_hGameChoice = AutoExecConfig_CreateConVar("mapdownload_game", "1", "(Only CS:S). Gamemode: 1=Normal, 2=GunGame, 3=Zombie, 4=1+2, 5=1+3, 6=2+3, 7=1+2+3");
 	g_hUpdate = AutoExecConfig_CreateConVar("mapdownload_update_plugin", "1", "1 = Auto update plugin with God Tony's autoupdater, 0 = Off");
 	g_hUpdateDB = AutoExecConfig_CreateConVar("mapdownload_update_database", "1", "1 = Auto update gamebanana database on plugin start, 0 = Off");
@@ -336,6 +342,7 @@ public OnConfigsExecuted()
 	g_bUpdate = GetConVarBool(g_hUpdate);
 	g_bUpdateDB = GetConVarBool(g_hUpdateDB);
 	g_bSearch = GetConVarBool(g_hSearch);
+	g_bDownloadList = GetConVarBool(g_hDownloadList);
 
 
 	// Strings
@@ -401,6 +408,10 @@ public OnConfigsExecuted()
 		CReplaceColor(Color_Green, Color_Lightred);
 		CReplaceColor(Color_Lightgreen, Color_Lime);
 	}
+
+
+	// Load the downloadlist
+	ParseDownloadList();
 }
 
 
@@ -580,6 +591,59 @@ public PreparePlugin()
 }
 
 
+
+
+
+// Prepare folders and connect to database
+public ParseDownloadList()
+{
+	// Parse Downloadlist
+	if (g_bDownloadList)
+	{
+		decl String:dllistFile[PLATFORM_MAX_PATH + 1];
+		decl String:readbuffer[64];
+
+		new Handle:file;
+
+
+		// Path to downloadlist
+		BuildPath(Path_SM, dllistFile, sizeof(dllistFile), "mapdownload/downloadlist.txt");
+
+
+
+		// Open file
+		file = OpenFile(dllistFile, "rb");
+
+
+		// We could open file
+		if (file != INVALID_HANDLE)
+		{
+			// Loop through file content
+			while (!IsEndOfFile(file) && ReadFileLine(file, readbuffer, sizeof(readbuffer)))
+			{
+				// Replace line ends
+				ReplaceString(readbuffer, sizeof(readbuffer), "\n", "");
+				ReplaceString(readbuffer, sizeof(readbuffer), "\t", "");
+				ReplaceString(readbuffer, sizeof(readbuffer), "\r", "");
+
+
+				// No comments or spaces at start
+				if (readbuffer[0] == '/' || readbuffer[0] == ' ')
+				{
+					continue;
+				}
+
+
+				// Add to download table
+				AddFileToDownloadsTable(readbuffer);
+			}
+
+
+			// Close File
+			CloseHandle(file);
+		}
+	}
+}
 
 
 
@@ -1143,6 +1207,47 @@ public FixMapName(String:map[], size)
 	ReplaceString(map, size, " ", "");
 }
 
+
+
+
+
+
+// Checks if a strings end with specific string
+public bool:StrEndsWith(String:str[], String:str2[])
+{
+	// Len of strings
+	new len = strlen(str);
+	new len2 = strlen(str2);
+	new start = len - len2;
+
+
+	// len2 can't be greather than len
+	if (start < 0)
+	{
+		return false;
+	}
+
+	// If len is equal, check string equal
+	if (start == 0)
+	{
+		return StrEqual(str, str2, false);
+	}
+
+
+	// For every char in string
+	for (new i=0; i < len2; i++)
+	{
+		// Check if one char isn't equal
+		if (str[start+i] != str2[i])
+		{
+			return false;
+		}
+	}
+
+
+	// if we come until here, it's true
+	return true;
+}
 
 
 
@@ -1913,15 +2018,115 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 		{
 			// Doesn't seems so
 			decl String:extractPath[PLATFORM_MAX_PATH + 1];
+			
 
 			// Format unique file path
 			Format(extractPath, sizeof(extractPath), "%s/%s", g_sPluginPath, g_Downloads[g_iCurrentDownload][DL_ID]);
-			
+
 
 			// Now search for extracted files and folders
 			if (SearchForFolders(extractPath, false))
 			{
 				// We need to find at least a .bsp file!
+
+				// Do we need to add files to downloadlist?
+				if (g_bDownloadList)
+				{
+					// Yes ^^
+					decl String:dllistFile[PLATFORM_MAX_PATH + 1];
+					decl String:content[64];
+					decl String:readbuffer[64];
+
+					new Handle:file;
+					new bool:duplicate;
+
+					new arraySize = GetArraySize(g_Downloads[g_iCurrentDownload][DL_FTPFILES]);
+
+
+					// Path to downloadlist
+					BuildPath(Path_SM, dllistFile, sizeof(dllistFile), "mapdownload/downloadlist.txt");
+
+
+
+					// Do we need to create the file first?
+					if (!FileExists(dllistFile))
+					{
+						file = OpenFile(dllistFile, "w+b");
+					}
+					else
+					{
+						// Open read and append
+						file = OpenFile(dllistFile, "r+b");
+					}
+
+
+					// We could open file
+					if (file != INVALID_HANDLE)
+					{
+						// Loop through files
+						for (new i=0; i < arraySize; i++)
+						{
+							// First get content
+							GetArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], i, content, sizeof(content));
+
+
+							// No .bsp or .nav files
+							if (!StrEndsWith(content, ".nav") && !StrEndsWith(content, ".bsp") && !StrEndsWith(content, ".txt"))
+							{
+								// Set File pointer to start
+								FileSeek(file, 0, SEEK_SET);
+
+								// Resetz duplicate
+								duplicate = false;
+
+
+								// Loop through file content and search if file already in downloadlist
+								while (!IsEndOfFile(file) && ReadFileLine(file, readbuffer, sizeof(readbuffer)))
+								{
+									// Replace line ends
+									ReplaceString(readbuffer, sizeof(readbuffer), "\n", "");
+									ReplaceString(readbuffer, sizeof(readbuffer), "\t", "");
+									ReplaceString(readbuffer, sizeof(readbuffer), "\r", "");
+
+
+									// No comments or spaces at start
+									if (readbuffer[0] == '/' || readbuffer[0] == ' ')
+									{
+										continue;
+									}
+
+
+									if (StrEqual(content, readbuffer, false))
+									{
+										// Found duplicate!
+										duplicate = true;
+
+										// Stop
+										break;
+									}
+								}
+
+
+								// If not in file already, add it
+								if (!duplicate)
+								{
+									WriteFileLine(file, content);
+
+									// Add to download table
+									AddFileToDownloadsTable(content);
+								}
+							}
+						}
+
+
+						// Close File
+						CloseHandle(file);
+					}
+				}
+
+
+
+				// Using ftp?
 				if (g_bFTP)
 				{
 					// Now Upload it to the Fast DL Server
@@ -1970,7 +2175,7 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 			}
 			else
 			{
-				// Error...
+				// We found no .bsp file...
 				if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
 				{
 					CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Invalid");
@@ -2004,161 +2209,185 @@ public bool:SearchForFolders(String:path[], bool:found)
 	new FileType:type;
 
 
-	// Read extract path
-	while (ReadDirEntry(dir, content, sizeof(content), type))
+
+	if (dir != INVALID_HANDLE)
 	{
-		// No relative paths
-		if (!StrEqual(content, ".") && !StrEqual(content, ".."))
+		// Read extract path
+		while (ReadDirEntry(dir, content, sizeof(content), type))
 		{
-			// Append found item to path
-			Format(newPath, sizeof(newPath), "%s/%s", path, content);
-			
-
-			// Check possible folders
-			if ((StrEqual(content, "sound") || StrEqual(content, "scripts") || StrEqual(content, "models") || StrEqual(content, "materials") || StrEqual(content, "resource")) && type == FileType_Directory) 
+			// No relative paths
+			if (!StrEqual(content, ".") && !StrEqual(content, ".."))
 			{
-				// Copy thos folder to game dir
-				CopyToGameDir(newPath, content);
-			}
-
-
-			// Nav file?
-			else if (((StrContains(content, ".nav") != -1) && StrContains(content, ".bak") < 0 && StrContains(content, ".ztmp") < 0 ) && type == FileType_File)
-			{
-				// Add File to file list, for uploading
-				PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
-
-
-				// Fix Map name
-				FixMapName(content, sizeof(content));
-
-
-				// Copy nav to maps folder
-				Format(content, sizeof(content), "maps/%s", content);
-
-				PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
-				System2_CopyFile(CopyFinished, newPath, content);
-			}
-
-			// Map file
-			else if (((StrContains(content, ".bsp") != -1) && StrContains(content, ".bak") < 0 && StrContains(content, ".ztmp") < 0 ) && type == FileType_File)
-			{
-				decl String:buff[128];
-
-
-				// Add File to file list, for uploading
-				PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
-
-
-				// Fix Map name
-				FixMapName(content, sizeof(content));
-
-
-				// Copy map to maps folder
-				Format(buff, sizeof(buff), "maps/%s", content);
-
-				PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], buff);
-				System2_CopyFile(CopyFinished, newPath, buff);
-
-
-
+				// Append found item to path
+				Format(newPath, sizeof(newPath), "%s/%s", path, content);
 				
-				// Maybe auto add it to the mapcycle file
-				// Maplist doesn't exist anymore and mani's votemaplist also not
-				if (g_bMapCycle)
+
+				// Check possible folders
+				if ((StrEqual(content, "sound") || StrEqual(content, "scripts") || StrEqual(content, "models") || StrEqual(content, "materials") || StrEqual(content, "resource")) && type == FileType_Directory) 
 				{
-					// File
-					decl String:readbuffer[128];
-					new Handle:mapcycle = INVALID_HANDLE;
+					// Copy thos folder to game dir
+					CopyToGameDir(newPath, content);
+				}
 
 
-					// We don't need the .bsp extension^^
-					ReplaceString(content, sizeof(content), ".bsp", "");
+				// Nav file?
+				else if (StrEndsWith(content, ".nav") && type == FileType_File)
+				{
+					// Add File to file list, for uploading
+					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
 
 
-					// After steam pipe update mapcycle file is in cfg folder
-					if (FileExists("cfg/mapcycle.txt"))
+					// Fix Map name
+					FixMapName(content, sizeof(content));
+
+
+					// Copy nav to maps folder
+					Format(content, sizeof(content), "maps/%s", content);
+
+					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
+					System2_CopyFile(CopyFinished, newPath, content);
+				}
+
+				// txt file?
+				else if (StrEndsWith(content, ".txt") && type == FileType_File)
+				{
+					// Add File to file list, for uploading
+					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
+
+
+					// Fix Map name
+					FixMapName(content, sizeof(content));
+
+
+					// Copy txt to maps folder
+					Format(content, sizeof(content), "maps/%s", content);
+
+					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
+					System2_CopyFile(CopyFinished, newPath, content);
+				}
+
+				// Map file
+				else if (StrEndsWith(content, ".bsp") && type == FileType_File)
+				{
+					decl String:buff[128];
+
+
+					// Add File to file list, for uploading
+					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
+
+
+					// Fix Map name
+					FixMapName(content, sizeof(content));
+
+
+					// Copy map to maps folder
+					Format(buff, sizeof(buff), "maps/%s", content);
+
+					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], buff);
+					System2_CopyFile(CopyFinished, newPath, buff);
+
+
+
+					
+					// Maybe auto add it to the mapcycle file
+					// Maplist doesn't exist anymore and mani's votemaplist also not
+					if (g_bMapCycle)
 					{
-						// Write to mapcycle
-						mapcycle = OpenFile("cfg/mapcycle.txt", "r+b");
-					}
-
-					// But the old path is also possible
-					else
-					{
-						// Write to mapcycle
-						mapcycle = OpenFile("mapcycle.txt", "r+b");
-					}
+						// File
+						decl String:readbuffer[128];
+						new Handle:mapcycle = INVALID_HANDLE;
 
 
-					// Found valid mapcycle?
-					if (mapcycle != INVALID_HANDLE)
-					{
-						// Search for duplicate
-						new bool:duplicate = false;
+						// We don't need the .bsp extension^^
+						ReplaceString(content, sizeof(content), ".bsp", "");
 
 
-						while (!IsEndOfFile(mapcycle) && ReadFileLine(mapcycle, readbuffer, sizeof(readbuffer)))
+						// After steam pipe update mapcycle file is in cfg folder
+						if (FileExists("cfg/mapcycle.txt"))
 						{
-							// Replace line ends
-							ReplaceString(readbuffer, sizeof(readbuffer), "\n", "");
-							ReplaceString(readbuffer, sizeof(readbuffer), "\t", "");
-							ReplaceString(readbuffer, sizeof(readbuffer), "\r", "");
+							// Write to mapcycle
+							mapcycle = OpenFile("cfg/mapcycle.txt", "r+b");
+						}
 
-
-							// No comments
-							if (readbuffer[0] == '/')
-							{
-								continue;
-							}
-
-
-							if (StrEqual(content, readbuffer, false))
-							{
-								// Found duplicate!
-								duplicate = true;
-
-								// Stop
-								break;
-							}
+						// But the old path is also possible
+						else
+						{
+							// Write to mapcycle
+							mapcycle = OpenFile("mapcycle.txt", "r+b");
 						}
 
 
-						// If not in mapcycle, add it
-						if (!duplicate)
+						// Found valid mapcycle?
+						if (mapcycle != INVALID_HANDLE)
 						{
-							WriteFileLine(mapcycle, content);
+							// Search for duplicate
+							new bool:duplicate = false;
+
+
+							while (!IsEndOfFile(mapcycle) && ReadFileLine(mapcycle, readbuffer, sizeof(readbuffer)))
+							{
+								// Replace line ends
+								ReplaceString(readbuffer, sizeof(readbuffer), "\n", "");
+								ReplaceString(readbuffer, sizeof(readbuffer), "\t", "");
+								ReplaceString(readbuffer, sizeof(readbuffer), "\r", "");
+
+
+								// No comments
+								if (readbuffer[0] == '/' || readbuffer[0] == ' ')
+								{
+									continue;
+								}
+
+
+								if (StrEqual(content, readbuffer, false))
+								{
+									// Found duplicate!
+									duplicate = true;
+
+									// Stop
+									break;
+								}
+							}
+
+
+							// If not in mapcycle, add it
+							if (!duplicate)
+							{
+								WriteFileLine(mapcycle, content);
+							}
+
+							// Close
+							CloseHandle(mapcycle);
 						}
-
-						CloseHandle(mapcycle);
 					}
+
+					
+
+
+
+					// Notice new map, so admin know it's base name
+					if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+					{
+						CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "FoundMap", content);
+					}
+
+					// Yes, we found a a .bsp file :) 
+					found = true;
 				}
 
-				
-
-
-
-				// Notice new map, so admin know it's base name
-				if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+				else if (type == FileType_Directory) 
 				{
-					CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "FoundMap", content);
+					// Go on searching, keep found in memory
+					found = SearchForFolders(newPath, found);
 				}
-
-				// Yes, we found a a .bsp file :) 
-				found = true;
-			}
-
-			else if (type == FileType_Directory) 
-			{
-				// Go on searching, keep found in memory
-				found = SearchForFolders(newPath, found);
 			}
 		}
+
+
+		// Close handle
+		CloseHandle(dir);
 	}
 
-
-	// Close handle
-	CloseHandle(dir);
 
 	// Found .bsp?
 	return found;
