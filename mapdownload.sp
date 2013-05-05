@@ -410,6 +410,13 @@ public OnConfigsExecuted()
 	}
 
 
+	// No Lightgreen?
+	if (!CColorAllowed(Color_Lightgreen))
+	{
+		CReplaceColor(Color_Lightgreen, Color_Olive);
+	}
+
+
 	// Load the downloadlist
 	ParseDownloadList();
 }
@@ -987,13 +994,17 @@ public SendCurrentStatus()
 
 
 			// We always need a lot of percent signs^^
-			if (StrEqual(g_sGame, "css", false))
+			if (g_hHudSync == INVALID_HANDLE && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
 			{
 				Format(percent, sizeof(percent), "%.2f%%%%%%%%%% - %i / %i", per, iCurrent, iTotal);
 			}
 			else if (g_hHudSync != INVALID_HANDLE)
 			{
 				Format(percent, sizeof(percent), "%.2f%%%%%% - %i / %i", per, iCurrent, iTotal);
+			}
+			else if (StrEqual(g_sGame, "dods", false))
+			{
+				Format(percent, sizeof(percent), "%.2f - %i / %i", per, iCurrent, iTotal);
 			}
 			else
 			{
@@ -1004,13 +1015,17 @@ public SendCurrentStatus()
 		else if (g_Downloads[g_iCurrentDownload][DL_MODE] == MODUS_UPLOAD)
 		{
 			// We always need a lot of percent signs^^
-			if (StrEqual(g_sGame, "css", false))
+			if (g_hHudSync == INVALID_HANDLE && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
 			{
 				Format(percent, sizeof(percent), "%.2f%%%%%%%%%% - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
 			}
 			else if (g_hHudSync != INVALID_HANDLE)
 			{
 				Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
+			}
+			else if (StrEqual(g_sGame, "dods", false))
+			{
+				Format(percent, sizeof(percent), "%.2f - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
 			}
 			else
 			{
@@ -1021,13 +1036,17 @@ public SendCurrentStatus()
 		else
 		{
 			// We always need a lot of percent signs^^
-			if (StrEqual(g_sGame, "css", false))
+			if (g_hHudSync == INVALID_HANDLE && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
 			{
 				Format(percent, sizeof(percent), "%.2f%%%%%%%%%% - %.0fkB / %.0fkB", per, current, total);
 			}
 			else if (g_hHudSync != INVALID_HANDLE)
 			{
 				Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB", per, current, total);
+			}
+			else if (StrEqual(g_sGame, "dods", false))
+			{
+				Format(percent, sizeof(percent), "%.2f - %.0fkB / %.0fkB", per, current, total);
 			}
 			else
 			{
@@ -1079,7 +1098,7 @@ public SendCurrentStatus()
 				Format(queue, sizeof(queue), "%T", "Queue", i, g_iTotalDownloads - g_iCurrentDownload - 1);
 
 				// Csgo need extra formating
-				if (StrEqual(g_sGame, "css", false) || g_hHudSync != INVALID_HANDLE)
+				if (!StrEqual(g_sGame, "csgo", false))
 				{
 					Format(message, sizeof(message), "%T: %s\n%s\n%s\n%s", g_sModes[g_Downloads[g_iCurrentDownload][DL_MODE]], i, g_Downloads[g_iCurrentDownload][DL_NAME], bar, percent, queue);
 				}
