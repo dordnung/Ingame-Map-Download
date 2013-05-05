@@ -437,7 +437,7 @@ public OnAllPluginsLoaded()
 public PreparePlugin()
 {
 	// Build plugin paths
-	BuildPath(Path_SM, g_sPluginPath, sizeof(g_sPluginPath), "mapdownload");
+	BuildPath(Path_SM, g_sPluginPath, sizeof(g_sPluginPath), "data/mapdownload");
 
 
 	// Check if paths exist
@@ -607,7 +607,7 @@ public ParseDownloadList()
 
 
 		// Path to downloadlist
-		BuildPath(Path_SM, dllistFile, sizeof(dllistFile), "mapdownload/downloadlist.txt");
+		BuildPath(Path_SM, dllistFile, sizeof(dllistFile), "data/mapdownload/downloadlist.txt");
 
 
 
@@ -2044,7 +2044,7 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 
 
 					// Path to downloadlist
-					BuildPath(Path_SM, dllistFile, sizeof(dllistFile), "mapdownload/downloadlist.txt");
+					BuildPath(Path_SM, dllistFile, sizeof(dllistFile), "data/mapdownload/downloadlist.txt");
 
 
 
