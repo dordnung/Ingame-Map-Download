@@ -987,13 +987,13 @@ public SendCurrentStatus()
 
 
 			// We always need a lot of percent signs^^
-			if (StrEqual(g_sGame, "css", false) || g_hHudSync != INVALID_HANDLE)
+			if (StrEqual(g_sGame, "css", false))
 			{
 				Format(percent, sizeof(percent), "%.2f%%%%%%%%%% - %i / %i", per, iCurrent, iTotal);
 			}
 			else if (g_hHudSync != INVALID_HANDLE)
 			{
-				Format(percent, sizeof(percent), "%.2f%%%%%%%% - %i / %i", per, iCurrent, iTotal);
+				Format(percent, sizeof(percent), "%.2f%%%%%% - %i / %i", per, iCurrent, iTotal);
 			}
 			else
 			{
@@ -1010,7 +1010,7 @@ public SendCurrentStatus()
 			}
 			else if (g_hHudSync != INVALID_HANDLE)
 			{
-				Format(percent, sizeof(percent), "%.2f%%%%%%%% - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
+				Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
 			}
 			else
 			{
@@ -1027,7 +1027,7 @@ public SendCurrentStatus()
 			}
 			else if (g_hHudSync != INVALID_HANDLE)
 			{
-				Format(percent, sizeof(percent), "%.2f%%%%%%%% - %.0fkB / %.0fkB", per, current, total);
+				Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB", per, current, total);
 			}
 			else
 			{
@@ -1063,7 +1063,7 @@ public SendCurrentStatus()
 	// Prepare Hud text
 	if (g_hHudSync != INVALID_HANDLE)
 	{
-		SetHudTextParams(-1.0, 0.75, 7.0, 70, 0, 0, 255, 0, 0.0, 0.0, 0.0);
+		SetHudTextParams(-1.0, 0.75, 7.0, 0, 200, 0, 255, 0, 0.0, 0.0, 0.0);
 	}
 
 
