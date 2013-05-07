@@ -197,13 +197,13 @@ new String:g_sDatabaseCheck[] = "SELECT \
 // Get all categories
 new String:g_sAllCategories[] = "SELECT \
 						`mapdl_categories`.`id`, `mapdl_categories`.`name`, COUNT(`mapdl_maps`.`mapname`) FROM `mapdl_categories`, `mapdl_maps` \
-						WHERE `game` IN %s AND `mapdl_categories`.`id`=`mapdl_maps`.`categories_id` %s%s%s%s GROUP BY `mapdl_categories`.`name`";
+						WHERE `mapdl_categories`.`game` IN %s AND `mapdl_categories`.`id`=`mapdl_maps`.`categories_id` %s%s%s%s GROUP BY `mapdl_categories`.`name`";
 
 
 // Search for a categorie
 new String:g_sSearchCategories[] = "SELECT \
 						`mapdl_categories`.`id`, `mapdl_categories`.`name`, COUNT(`mapdl_maps`.`mapname`) FROM `mapdl_categories`, `mapdl_maps` \
-						WHERE `game` IN %s AND `mapdl_categories`.`id`=`mapdl_maps`.`categories_id` AND `mapdl_maps`.`mapname` LIKE '%s' ESCAPE '?' %s%s%s%s GROUP BY `mapdl_categories`.`name`";
+						WHERE `mapdl_categories`.`game` IN %s AND `mapdl_categories`.`id`=`mapdl_maps`.`categories_id` AND `mapdl_maps`.`mapname` LIKE '%s' ESCAPE '?' %s%s%s%s GROUP BY `mapdl_categories`.`name`";
 
 						
 // Get all maps
@@ -954,8 +954,9 @@ public bool:IsClientValid(client)
 public bool:IsClientAdmin(client)
 {
 	new need = ReadFlagString(g_sFlag);
+	new clientFlags = GetUserFlagBits(client);
 
-	return (need <= 0 || (GetUserFlagBits(client) & need));
+	return (need <= 0 || (clientFlags & need) || (clientFlags & ADMFLAG_ROOT));
 } 
 
 
