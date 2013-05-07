@@ -119,12 +119,13 @@ new g_Downloads[20][DownloadInfo];
 
 
 // Global strings
-new String:g_sVersion[] = "2.0.0";
+new String:g_sVersion[] = "2.1.0";
 new String:g_sModes[][] = {"Downloading", "Uploading", "Compressing"};
 new String:g_sGameSearch[64];
 new String:g_sPluginPath[PLATFORM_MAX_PATH + 1];
 new String:g_sCommand[32];
 new String:g_sCommandCustom[32];
+new String:g_sFTPCommand[32];
 new String:g_sTag[32];
 new String:g_sTagChat[64];
 new String:g_sFlag[32];
@@ -134,6 +135,7 @@ new String:g_sFTPPW[128];
 new String:g_sFTPPath[PLATFORM_MAX_PATH + 1];
 new String:g_sGame[12];
 new String:g_sSearch[MAXPLAYERS + 1][9][64];
+new String:g_sLogin[MAXPLAYERS + 1][2][64];
 new String:g_sWhitelistMaps[1024];
 new String:g_sBlacklistMaps[1024];
 new String:g_sWhitelistCategories[1024];
@@ -145,12 +147,14 @@ new bool:g_bShow;
 new bool:g_bMapCycle;
 new bool:g_bNotice;
 new bool:g_bFTP;
+new bool:g_bFTPLogin;
 new bool:g_bFirst;
 new bool:g_bUpdate;
 new bool:g_bUpdateDB;
 new bool:g_bDBLoaded;
 new bool:g_bSearch;
 new bool:g_bDownloadList;
+new bool:g_bUseCustom;
 
 
 // Global ints
@@ -159,6 +163,7 @@ new g_iTotalDownloads;
 new g_iCurrentDownload;
 new g_iGameChoice;
 new g_iLast[MAXPLAYERS + 1][2];
+new g_iCurrentNotice;
 
 
 // Global handles
@@ -182,6 +187,8 @@ new Handle:g_hDatabase;
 new Handle:g_hGameChoice;
 new Handle:g_hHudSync;
 new Handle:g_hDownloadList;
+new Handle:g_hFTPLogin;
+new Handle:g_hFTPCommand;
 
 
 
@@ -324,7 +331,8 @@ public OnPluginStart()
 	// First is true!
 	g_bFirst = true;
 	g_bDBLoaded = false;
-
+	g_bUseCustom = false;
+	g_iCurrentNotice = 0;
 
 	// Init. AutoExecConfig
 	AutoExecConfig_SetFile("plugin.mapdownload");
@@ -334,8 +342,8 @@ public OnPluginStart()
 	AutoExecConfig_CreateConVar("mapdownload_version", g_sVersion, "Ingame Map Download Version", FCVAR_PLUGIN | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 
 	// Set Cvars
-	g_hCommand = AutoExecConfig_CreateConVar("mapdownload_command", "sm_download", "Command to open Map Download menu. Append prefix 'sm_' for chat use!");
-	g_hCommandCustom = AutoExecConfig_CreateConVar("mapdownload_command_custom", "sm_download_custom", "Command to open custom Map Download menu. Append prefix 'sm_' for chat use!");
+	g_hCommand = AutoExecConfig_CreateConVar("mapdownload_command", "sm_mapdl", "Command to open Map Download menu. Append prefix 'sm_' for chat use!");
+	g_hCommandCustom = AutoExecConfig_CreateConVar("mapdownload_command_custom", "sm_mapdl_custom", "Command to open custom Map Download menu. Append prefix 'sm_' for chat use!");
 	g_hTag = AutoExecConfig_CreateConVar("mapdownload_tag", "Map Download", "Chat prefix of Map Download");
 	g_hFlag = AutoExecConfig_CreateConVar("mapdownload_flag", "bg", "Flagstring to access menu (see configs/admin_levels.cfg)");
 	g_hShow = AutoExecConfig_CreateConVar("mapdownload_show", "0", "1 = All players see map downloading status, 0 = Only admins");
@@ -347,11 +355,13 @@ public OnPluginStart()
 	g_hUpdate = AutoExecConfig_CreateConVar("mapdownload_update_plugin", "1", "1 = Auto update plugin with God Tony's autoupdater, 0 = Off");
 	g_hUpdateDB = AutoExecConfig_CreateConVar("mapdownload_update_database", "1", "1 = Auto download gamebanana database on plugin start, 0 = Off");
 	g_hFTP = AutoExecConfig_CreateConVar("mapdownload_ftp", "0", "1 = Use Fast Download upload, 0 = Off");
-	g_hFTPHost = AutoExecConfig_CreateConVar("mapdownload_ftp_host", "192.168.0.1", "Host of your FastDL server");
-	g_hFTPPort = AutoExecConfig_CreateConVar("mapdownload_ftp_port", "21", "Port of your FastDL server");
-	g_hFTPUser = AutoExecConfig_CreateConVar("mapdownload_ftp_user", "username", "Username to login");
-	g_hFTPPW = AutoExecConfig_CreateConVar("mapdownload_ftp_pass", "password", "Password for username to login");
-	g_hFTPPath = AutoExecConfig_CreateConVar("mapdownload_ftp_path", "path/on/fastdl", "Path to your FastDL gamedir folder, including folders maps, sound, and so on");
+	g_hFTPLogin = AutoExecConfig_CreateConVar("mapdownload_ftp_login", "0", "1 = Player have to insert username and password of ftp server in his console (Security), 0 = Off");
+	g_hFTPCommand = AutoExecConfig_CreateConVar("mapdownload_ftp_command", "mapdl_login", "Command to set username and passwort if 'mapdownload_ftp_ingame = 1'");
+	g_hFTPHost = AutoExecConfig_CreateConVar("mapdownload_ftp_host", "192.168.0.1", "Host of your FastDL server", FCVAR_PROTECTED | FCVAR_DONTRECORD);
+	g_hFTPPort = AutoExecConfig_CreateConVar("mapdownload_ftp_port", "21", "Port of your FastDL server", FCVAR_PROTECTED | FCVAR_DONTRECORD);
+	g_hFTPUser = AutoExecConfig_CreateConVar("mapdownload_ftp_user", "username", "Username to login", FCVAR_PROTECTED | FCVAR_DONTRECORD);
+	g_hFTPPW = AutoExecConfig_CreateConVar("mapdownload_ftp_pass", "password", "Password for username to login", FCVAR_PROTECTED | FCVAR_DONTRECORD);
+	g_hFTPPath = AutoExecConfig_CreateConVar("mapdownload_ftp_path", "path/on/fastdl", "Path to your FastDL gamedir folder, including folders maps, sound, and so on", FCVAR_PROTECTED | FCVAR_DONTRECORD);
 
 
 
@@ -386,6 +396,7 @@ public OnConfigsExecuted()
 	g_bShow = GetConVarBool(g_hShow);
 	g_bMapCycle = GetConVarBool(g_hMapCycle);
 	g_bFTP = GetConVarBool(g_hFTP);
+	g_bFTPLogin = (GetConVarBool(g_hFTPLogin) && g_bFTP);
 	g_bUpdate = GetConVarBool(g_hUpdate);
 	g_bUpdateDB = GetConVarBool(g_hUpdateDB);
 	g_bSearch = GetConVarBool(g_hSearch);
@@ -395,6 +406,7 @@ public OnConfigsExecuted()
 	// Strings
 	GetConVarString(g_hCommand, g_sCommand, sizeof(g_sCommand));
 	GetConVarString(g_hCommandCustom, g_sCommandCustom, sizeof(g_sCommandCustom));
+	GetConVarString(g_hFTPCommand, g_sFTPCommand, sizeof(g_sFTPCommand));
 	GetConVarString(g_hTag, g_sTag, sizeof(g_sTag));
 	GetConVarString(g_hFlag, g_sFlag, sizeof(g_sFlag));
 	GetConVarString(g_hFTPHost, g_sFTPHost, sizeof(g_sFTPHost));
@@ -434,7 +446,7 @@ public OnConfigsExecuted()
 		// Now register command to open menu
 		RegAdminCmd(g_sCommand, OpenMenu, ReadFlagString(g_sFlag));
 		RegAdminCmd(g_sCommandCustom, OpenMenuCustom, ReadFlagString(g_sFlag));
-
+		RegConsoleCmd(g_sFTPCommand, OnSetLoginData);
 
 		// Prepare folders and connect to database
 		PreparePlugin();
@@ -956,7 +968,6 @@ public ParseLists()
 			decl String:query[1024];
 			decl String:section[128];
 			decl String:search[128];
-			decl String:searchBuffer[256];
 			decl String:sectionBuffer[256];
 
 
@@ -968,6 +979,10 @@ public ParseLists()
 			// Any data?
 			if (!StrEqual(search, "") && !StrEqual(section, ""))
 			{
+				// Yes we use it :)
+				g_bUseCustom = true;
+
+
 				// Remove last / if exists
 				if (StrEndsWith(search, "/"))
 				{
@@ -977,7 +992,6 @@ public ParseLists()
 
 				// Escape strings
 				SQL_EscapeString(g_hDatabase, section, sectionBuffer, sizeof(sectionBuffer));
-				SQL_EscapeString(g_hDatabase, search, searchBuffer, sizeof(searchBuffer));
 
 
 
@@ -986,7 +1000,7 @@ public ParseLists()
 
 
 				// Get result of insert
-				Format(query, sizeof(query), g_InsertCustom, sectionBuffer, searchBuffer);
+				Format(query, sizeof(query), g_InsertCustom, sectionBuffer, search);
 				SQL_Query(g_hDatabase, query);
 
 
@@ -1020,6 +1034,7 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
 {
 	decl String:name[128];
 	decl String:part[512];
+	decl String:partBuffer[1024];
 	decl String:explodes[64][512];
 	decl String:query[1024];
 	decl String:outputFinal[size + 128 + 1];
@@ -1055,13 +1070,13 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
 			if (split > 0)
 			{
 				ReplaceString(part, sizeof(part), "\"", "", false);
-
+				EscapeString(part, '%', '%', partBuffer, sizeof(partBuffer));
 
 				// Check valid
-				if ((StrEndsWith(part, ".bz2") || StrEndsWith(part, ".rar") || StrEndsWith(part, ".zip") || StrEndsWith(part, ".7z")) && !StrEndsWith(part, ".txt.bz2"))
+				if ((StrEndsWith(partBuffer, ".bz2") || StrEndsWith(partBuffer, ".rar") || StrEndsWith(partBuffer, ".zip") || StrEndsWith(partBuffer, ".7z")) && !StrEndsWith(partBuffer, ".txt.bz2"))
 				{
 					// Insert Map
-					Format(query, sizeof(query), g_InsertCustomMaps, part, name);
+					Format(query, sizeof(query), g_InsertCustomMaps, partBuffer, name);
 
 					SQL_TQuery(g_hDatabase, SQL_CallBack, query);
 				}
@@ -1189,6 +1204,19 @@ public bool:IsClientAdmin(client)
 
 	return (need <= 0 || (clientFlags & need) || (clientFlags & ADMFLAG_ROOT));
 } 
+
+
+
+
+
+// Reset client
+public OnClientConnected(client)
+{
+	// Reset client
+	strcopy(g_sLogin[client][0], sizeof(g_sLogin[][]), "");
+	strcopy(g_sLogin[client][1], sizeof(g_sLogin[][]), "");
+}
+
 
 
 
@@ -1368,7 +1396,8 @@ public SendCurrentStatus()
 public Action:NoticeTimer(Handle:timer, any:data)
 {
 	decl String:commandBuffer[64];
-	
+	decl String:commandBufferCustom[64];
+
 
 	// Only for commands with sm_
 	if (StrContains(g_sCommand, "sm_", false) > -1)
@@ -1376,6 +1405,9 @@ public Action:NoticeTimer(Handle:timer, any:data)
 		// Replace sm_
 		Format(commandBuffer, sizeof(commandBuffer), g_sCommand);
 		ReplaceString(commandBuffer, sizeof(commandBuffer), "sm_", "");
+
+		Format(commandBufferCustom, sizeof(commandBufferCustom), g_sCommandCustom);
+		ReplaceString(commandBufferCustom, sizeof(commandBufferCustom), "sm_", "");
 
 
 		// Client loop
@@ -1385,9 +1417,32 @@ public Action:NoticeTimer(Handle:timer, any:data)
 			if (IsClientValid(i) && IsClientAdmin(i))
 			{
 				// Print
-				CPrintToChat(i, "%s %t", g_sTagChat, "Notice", commandBuffer, commandBuffer);
-				CPrintToChat(i, "%s %t", g_sTagChat, "NoticeDetail");
+				if (g_iCurrentNotice == 0)
+				{
+					CPrintToChat(i, "%s %t", g_sTagChat, "Notice", commandBuffer);
+				}
+
+				if (g_iCurrentNotice == 2)
+				{
+					CPrintToChat(i, "%s %t", g_sTagChat, "Notice2", commandBufferCustom);
+				}
+
+				if (g_iCurrentNotice == 1)
+				{
+					CPrintToChat(i, "%s %t", g_sTagChat, "Notice3");
+				}
 			}
+		}
+
+
+		// Increase
+		g_iCurrentNotice++;
+
+
+		if ((g_bUseCustom && g_iCurrentNotice == 3) || (!g_bUseCustom && g_iCurrentNotice == 2))
+		{
+			// Reset
+			g_iCurrentNotice = 0;
 		}
 
 
@@ -1503,6 +1558,32 @@ public bool:StrEndsWith(String:str[], String:str2[])
 
 
 
+// Save Login data
+public Action:OnSetLoginData(client, args)
+{
+	if (IsClientValid(client))
+	{
+		if (args == 2)
+		{
+			// Get username and password
+			GetCmdArg(1, g_sLogin[client][0], sizeof(g_sLogin[][]));
+			GetCmdArg(2, g_sLogin[client][1], sizeof(g_sLogin[][]));
+
+			ReplyToCommand(client, "Succesfully set Login Data");
+		}
+		else
+		{
+			ReplyToCommand(client, "Usage: %s <username> <password>", g_sFTPCommand);
+		}
+	}
+
+
+	return Plugin_Handled;
+}
+
+
+
+
 
 
 
@@ -1538,18 +1619,24 @@ MENU
 // Open Custom menu
 public Action:OpenMenuCustom(client, args)
 {
-	decl String:argument[64];
-	
-	// Get argument
-	GetCmdArgString(argument, sizeof(argument));
+	if (g_bUseCustom)
+	{
+		decl String:argument[64];
+		
+		// Get argument
+		GetCmdArgString(argument, sizeof(argument));
 
 
-	// Open Menu
-	OpenMenuGeneral(client, argument, "1");
+		// Open Menu
+		OpenMenuGeneral(client, argument, "1");
 
 
-	// Finish
-	return Plugin_Handled;
+		// Finish
+		return Plugin_Handled;
+	}
+
+	// We don't use it
+	return Plugin_Continue;
 }
 
 
@@ -1583,6 +1670,13 @@ public OpenMenuGeneral(client, String:argument[], String:isCustom[])
 	{
 		if (IsClientValid(client))
 		{
+			if (g_bFTPLogin && (StrEqual(g_sLogin[client][0], "") || StrEqual(g_sLogin[client][1], "")))
+			{
+				// Remember
+				CPrintToChat(client, "%s %t", g_sTagChat, "Login", g_sFTPCommand);
+			}
+
+
 			// Max. 20 downloads
 			if (g_iTotalDownloads == 20)
 			{
@@ -2978,7 +3072,14 @@ public OnCompressed(const String:output[], const size, CMDReturn:status)
 
 				// Upload this file
 				// Next step is in OnUploadProgress when every file is uploaded
-				System2_UploadFTPFile(OnUploadProgress, file, archive, g_sFTPHost, g_sFTPUser, g_sFTPPW, g_iFTPPort);
+				if (!g_bFTPLogin)
+				{
+					System2_UploadFTPFile(OnUploadProgress, file, archive, g_sFTPHost, g_sFTPUser, g_sFTPPW, g_iFTPPort);
+				}
+				else
+				{
+					System2_UploadFTPFile(OnUploadProgress, file, archive, g_sFTPHost, g_sLogin[g_Downloads[g_iCurrentDownload][DL_CLIENT]][0], g_sLogin[g_Downloads[g_iCurrentDownload][DL_CLIENT]][1], g_iFTPPort);
+				}
 			}
 			else
 			{
@@ -3068,8 +3169,16 @@ public OnUploadProgress(bool:finished, const String:error[], Float:dltotal, Floa
 				Format(archive, sizeof(archive), "%s/%s.bz2", g_sFTPPath, archive);
 
 
+
 				// Upload this file
-				System2_UploadFTPFile(OnUploadProgress, file, archive, g_sFTPHost, g_sFTPUser, g_sFTPPW, g_iFTPPort);
+				if (!g_bFTPLogin)
+				{
+					System2_UploadFTPFile(OnUploadProgress, file, archive, g_sFTPHost, g_sFTPUser, g_sFTPPW, g_iFTPPort);
+				}
+				else
+				{
+					System2_UploadFTPFile(OnUploadProgress, file, archive, g_sFTPHost, g_sLogin[g_Downloads[g_iCurrentDownload][DL_CLIENT]][0], g_sLogin[g_Downloads[g_iCurrentDownload][DL_CLIENT]][1], g_iFTPPort);
+				}
 			}
 		}
 		else
