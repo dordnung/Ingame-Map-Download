@@ -357,11 +357,11 @@ public OnPluginStart()
 	g_hFTP = AutoExecConfig_CreateConVar("mapdownload_ftp", "0", "1 = Use Fast Download upload, 0 = Off");
 	g_hFTPLogin = AutoExecConfig_CreateConVar("mapdownload_ftp_login", "0", "1 = Player have to insert username and password of ftp server in his console (Security), 0 = Off");
 	g_hFTPCommand = AutoExecConfig_CreateConVar("mapdownload_ftp_command", "mapdl_login", "Command to set username and passwort if 'mapdownload_ftp_ingame = 1'");
-	g_hFTPHost = AutoExecConfig_CreateConVar("mapdownload_ftp_host", "192.168.0.1", "Host of your FastDL server", FCVAR_PROTECTED | FCVAR_DONTRECORD);
-	g_hFTPPort = AutoExecConfig_CreateConVar("mapdownload_ftp_port", "21", "Port of your FastDL server", FCVAR_PROTECTED | FCVAR_DONTRECORD);
-	g_hFTPUser = AutoExecConfig_CreateConVar("mapdownload_ftp_user", "username", "Username to login", FCVAR_PROTECTED | FCVAR_DONTRECORD);
-	g_hFTPPW = AutoExecConfig_CreateConVar("mapdownload_ftp_pass", "password", "Password for username to login", FCVAR_PROTECTED | FCVAR_DONTRECORD);
-	g_hFTPPath = AutoExecConfig_CreateConVar("mapdownload_ftp_path", "path/on/fastdl", "Path to your FastDL gamedir folder, including folders maps, sound, and so on", FCVAR_PROTECTED | FCVAR_DONTRECORD);
+	g_hFTPHost = AutoExecConfig_CreateConVar("mapdownload_ftp_host", "192.168.0.1", "Host of your FastDL server", FCVAR_PROTECTED);
+	g_hFTPPort = AutoExecConfig_CreateConVar("mapdownload_ftp_port", "21", "Port of your FastDL server", FCVAR_PROTECTED);
+	g_hFTPUser = AutoExecConfig_CreateConVar("mapdownload_ftp_user", "username", "Username to login", FCVAR_PROTECTED);
+	g_hFTPPW = AutoExecConfig_CreateConVar("mapdownload_ftp_pass", "password", "Password for username to login", FCVAR_PROTECTED);
+	g_hFTPPath = AutoExecConfig_CreateConVar("mapdownload_ftp_path", "path/on/fastdl", "Path to your FastDL gamedir folder, including folders maps, sound, and so on", FCVAR_PROTECTED);
 
 
 
