@@ -119,7 +119,7 @@ new g_Downloads[20][DownloadInfo];
 
 
 // Global strings
-new String:g_sVersion[] = "2.1.0";
+new String:g_sVersion[] = "2.1.1";
 new String:g_sModes[][] = {"Downloading", "Uploading", "Compressing"};
 new String:g_sGameSearch[64];
 new String:g_sPluginPath[PLATFORM_MAX_PATH + 1];
