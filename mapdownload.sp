@@ -2277,7 +2277,14 @@ public StartDownloadingMap(client, const String:id[], const String:map[], const 
 
 
 	// Format the download destination
-	GetFileName(map, savePath, sizeof(savePath));
+	if (!isCustom)
+	{
+		GetFileName(link, savePath, sizeof(savePath));
+	}
+	else
+	{
+		GetFileName(map, savePath, sizeof(savePath));
+	}
 
 
 	Format(savePath, sizeof(savePath), "%s/%s", g_sPluginPath, savePath);
