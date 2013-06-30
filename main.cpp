@@ -60,13 +60,13 @@ int main(int argc, const char* argv[])
 	{
 		choice = atoi(argv[1]);
 
-		if (choice > 0 && choice < 8)
+		if (choice > 0 && choice < 6)
 		{
 			useArg = true;
 		}
-		else if (choice == 8)
+		else if (choice == 6)
 		{
-			gameCount = 7;
+			gameCount = 5;
 			useArg = true;
 		}
 	}
