@@ -38,7 +38,7 @@ LINK = $(CURL)libcurl.a $(OPENSSL)/libssl.a $(OPENSSL)/libcrypto.a $(SQLITE3)lib
 
 CFLAGS += -O3 -funroll-loops -Wall -pipe -std=c++0x -pthread -msse -m32 -fpermissive -D_LINUX -DLINUX -DCURL_STATICLIB -DPOSIX -DCOMPILER_GCC -DNDEBUG -Dstricmp=strcasecmp \
 			-D_stricmp=strcasecmp -D_strnicmp=strncasecmp -Dstrnicmp=strncasecmp -D_snprintf=snprintf -D_vsnprintf=vsnprintf \
-			-D_alloca=alloca -Dstrcmpi=strcasecmp -Wno-deprecated -Wno-sign-compare -Wno-write-strings -fno-strict-aliasing -msse -mtune=i686 -march=pentium -mmmx
+			-D_alloca=alloca -Dstrcmpi=strcasecmp -Wno-unused-but-set-variable -Wno-unused-variable -Wno-deprecated -Wno-sign-compare -Wno-write-strings -fno-strict-aliasing -msse -mtune=i686 -march=pentium -mmmx
 
 
 OBJ_BIN := $(OBJECTS:%.cpp=%.o)

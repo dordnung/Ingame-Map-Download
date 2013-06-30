@@ -88,11 +88,9 @@ int main(int argc, const char* argv[])
 			cout << "2. Day of Defeat: Source" << endl;
 			cout << "3. Half-Life 2: Deathmatch" << endl;
 			cout << "4. Counter-Strike: Source" << endl;
-			cout << "5. Counter-Strike: Source Zombie Mod" << endl;
-			cout << "6. Counter-Strike: Source GunGame" << endl;
-			cout << "7. Counter-Strike: Global Offensive" << endl;
+			cout << "5. Counter-Strike: Global Offensive" << endl;
 			cout << "-------------------------------------" << endl;
-			cout << "8. All Games" << endl;
+			cout << "6. All Games" << endl;
 			cout << "-------------------------------------" << endl;
 			cout << "0. Exit" << endl << endl;
 
@@ -107,14 +105,14 @@ int main(int argc, const char* argv[])
 				return 1;
 			}
 
-			else if (choice == 8)
+			else if (choice == 6)
 			{
-				gameCount = 7;
+				gameCount = 5;
 
 				break;
 			}
 
-			else if (choice > 0 && choice < 8)
+			else if (choice > 0 && choice < 6)
 			{
 				break;
 			}
@@ -681,18 +679,6 @@ void getGame(int gameInt)
 			break;
 		}
 		case 5:
-		{
-			game = "csszm";
-
-			break;
-		}
-		case 6:
-		{
-			game = "cssgg";
-
-			break;
-		}
-		case 7:
 		{
 			game = "csgo";
 
