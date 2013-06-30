@@ -119,7 +119,7 @@ new g_Downloads[20][DownloadInfo];
 
 
 // Global strings
-new String:g_sVersion[] = "2.1.1";
+new String:g_sVersion[] = "2.1.2";
 new String:g_sModes[][] = {"Downloading", "Uploading", "Compressing"};
 new String:g_sGameSearch[64];
 new String:g_sPluginPath[PLATFORM_MAX_PATH + 1];
@@ -161,7 +161,6 @@ new bool:g_bUseCustom;
 new g_iFTPPort;
 new g_iTotalDownloads;
 new g_iCurrentDownload;
-new g_iGameChoice;
 new g_iLast[MAXPLAYERS + 1][2];
 new g_iCurrentNotice;
 
@@ -184,7 +183,6 @@ new Handle:g_hFTPPW;
 new Handle:g_hFTPPort;
 new Handle:g_hFTPPath;
 new Handle:g_hDatabase;
-new Handle:g_hGameChoice;
 new Handle:g_hHudSync;
 new Handle:g_hDownloadList;
 new Handle:g_hFTPLogin;
@@ -351,7 +349,6 @@ public OnPluginStart()
 	g_hMapCycle = AutoExecConfig_CreateConVar("mapdownload_mapcycle", "1", "1 = Write downloaded map in mapcycle.txt, 0 = Off");
 	g_hNotice = AutoExecConfig_CreateConVar("mapdownload_notice", "1", "1 = Notice admins on server that Map Download runs, 0 = Off");
 	g_hDownloadList = AutoExecConfig_CreateConVar("mapdownload_downloadlist", "1", "1 = Add custom files of map to intern downloadlist, 0 = Off");
-	g_hGameChoice = AutoExecConfig_CreateConVar("mapdownload_game", "1", "(Only CS:S). Gamemode: 1=Normal, 2=GunGame, 3=Zombie, 4=1+2, 5=1+3, 6=2+3, 7=1+2+3");
 	g_hUpdate = AutoExecConfig_CreateConVar("mapdownload_update_plugin", "1", "1 = Auto update plugin with God Tony's autoupdater, 0 = Off");
 	g_hUpdateDB = AutoExecConfig_CreateConVar("mapdownload_update_database", "1", "1 = Auto download gamebanana database on plugin start, 0 = Off");
 	g_hFTP = AutoExecConfig_CreateConVar("mapdownload_ftp", "0", "1 = Use Fast Download upload, 0 = Off");
@@ -382,13 +379,6 @@ public OnConfigsExecuted()
 	// Read all convars
 	// Ints
 	g_iFTPPort = GetConVarInt(g_hFTPPort);
-	g_iGameChoice = GetConVarInt(g_hGameChoice);
-
-	// Valid?
-	if (g_iGameChoice < 0 || g_iGameChoice > 7)
-	{
-		g_iGameChoice = 1;
-	}
 
 
 	// Bools
@@ -574,68 +564,8 @@ public PreparePlugin()
 
 
 
-	// Special mods on CSS
-	if (StrEqual(g_sGame, "css", false))
-	{
-		// Add Comma
-		new bool:foundOne = false;
-
-
-		//Start
-		Format(g_sGameSearch, sizeof(g_sGameSearch), "(");
-
-
-
-		// Main
-		if (g_iGameChoice == 1 || g_iGameChoice == 4 || g_iGameChoice == 5 || g_iGameChoice == 7)
-		{
-			// Use Main
-			Format(g_sGameSearch, sizeof(g_sGameSearch), "%s'css'", g_sGameSearch);
-
-			foundOne = true;
-		}
-
-
-
-		// GunGame
-		if (g_iGameChoice == 2 || g_iGameChoice == 4 || g_iGameChoice == 6 || g_iGameChoice == 7)
-		{
-			// Use GunGame
-			if (foundOne)
-			{
-				Format(g_sGameSearch, sizeof(g_sGameSearch), "%s, ", g_sGameSearch);
-			}
-
-			// cssgg
-			Format(g_sGameSearch, sizeof(g_sGameSearch), "%s'cssgg'", g_sGameSearch);
-
-			foundOne = true;
-		}
-
-
-
-		// Zombie
-		if (g_iGameChoice == 3 || g_iGameChoice == 5 || g_iGameChoice == 6 || g_iGameChoice == 7)
-		{
-			// Use zombie
-			if (foundOne)
-			{
-				Format(g_sGameSearch, sizeof(g_sGameSearch), "%s, ", g_sGameSearch);
-			}
-
-			// csszm
-			Format(g_sGameSearch, sizeof(g_sGameSearch), "%s'csszm'", g_sGameSearch);
-		}
-
-
-		// End
-		Format(g_sGameSearch, sizeof(g_sGameSearch), "%s)", g_sGameSearch);
-	}
-	else
-	{
-		// Not CS:S
-		Format(g_sGameSearch, sizeof(g_sGameSearch), "('%s')", g_sGame);
-	}
+	// Format Search
+	Format(g_sGameSearch, sizeof(g_sGameSearch), "('%s')", g_sGame);
 
 
 
