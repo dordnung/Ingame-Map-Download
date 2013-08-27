@@ -5,4 +5,4 @@ Bored of going always out of game to add a new map to your server?
    
 With this plugin you can download maps directly ingame from the huge database of gamebanana.    
 
-[**Find out more about it**](https://bitbucket.org/Popoklopsi/ingame-map-download/wiki/Home)  
+[**Find out more about it**](https://github.com/popoklopsi/Ingame-Map-Download/wiki)  
