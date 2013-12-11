@@ -272,7 +272,7 @@ void OnGotMainPage(char *error, string result, string url, string data, string d
 		int pages = 1;
 
 
-		// No go through each page
+		// Now go through each page
 		// Splitter for pages
 		vector<std::string> founds = splitString(result, "class=\"CurrentPage\">");
 
@@ -293,7 +293,7 @@ void OnGotMainPage(char *error, string result, string url, string data, string d
 				replaceString(pageCount[size - 1], "\n", "");
 				replaceString(pageCount[size - 1], "\t", "");
 
-				// Not get the page count
+				// Now get the page count
 				pages = atoi(pageCount[size - 1].c_str());
 			}
 			else
@@ -533,25 +533,45 @@ void OnGotCategorieDetails(char *error, string result, string url, string data, 
 	if ((strcmp(error, "") == 0) && result != "")
 	{
 		// Splitter for categories
-		vector<std::string> founds = splitString(result, "<img src=\"\">", "</a>");
+		vector<std::string> founds = splitString(result, "<ul class=\"Categories\">", "</ul>");
 
 		// All maps
-		vector<std::string> mapCount = splitString(result, "</abbr>", "Maps");
+		vector<std::string> mapCount = splitString(result, "<small>", "Maps");
 
 
 		// Found Categories?
-		if (founds.size() > 1)
+		if (founds.size() == 2)
 		{
+			// Replace garbage
+			replaceString(founds[1], "<sup class=\"OrangeColor\">Pending</sup>", "");
+			replaceString(founds[1], " ", "");
+			replaceString(founds[1], "\n", "");
+			replaceString(founds[1], "\t", "");
+			replaceString(founds[1], "\r", "");
+
+			// Splitter again for categories
+			vector<std::string> linkName = splitString(founds[1], "\">", "</a>");
+
+
+			if (linkName.size() <= 1)
+			{
+				cout << "ERROR: Couldn't get pre categorie name. Program seems to be outdated..." << endl;
+
+				return;
+			}
+
+
 			// Get Map Count
 			if (mapCount.size() > 1)
 			{
 				// Loop for each map
-				for (unsigned int i=1; i < mapCount.size(); i++)
+				for (unsigned int i=1; i < mapCount.size()-1; i++)
 				{
 					// Replace garbage
 					replaceString(mapCount[i], " ", "");
 					replaceString(mapCount[i], "\n", "");
 					replaceString(mapCount[i], "\t", "");
+					replaceString(mapCount[i], "\r", "");
 					replaceString(mapCount[i], ",", "");
 
 					allMaps = allMaps + atoi(mapCount[i].c_str());
@@ -567,28 +587,10 @@ void OnGotCategorieDetails(char *error, string result, string url, string data, 
 
 
 			// Loop for result
-			for (unsigned int i=1; i < founds.size(); i++)
+			for (unsigned int i = 1; i < linkName.size(); i++)
 			{
-				// Replace garbage
-				replaceString(founds[i], "<a href=\"", "");
-				replaceString(founds[i], "\n", "");
-				replaceString(founds[i], "\t", "");
-
-				// Get Link and name
-				vector<std::string> linkName = splitString(founds[i], "\">");
-
-
-				if (linkName.size() == 2)
-				{
-					// Insert new Typ
-					insertCategorie(linkName[1]);
-				}
-				else
-				{
-					cout << "ERROR: Couldn't get pre categorie name. Program seems to be outdated..." << endl;
-
-					return;
-				}
+				// Insert new Typ
+				insertCategorie(linkName[i]);
 			}
 		}
 		else

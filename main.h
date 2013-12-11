@@ -26,6 +26,7 @@
 // c++ libs
 // So much stuff ^^
 #include <stdlib.h>
+#include <cstdlib>
 #include <sstream>
 #include <iostream>
 #include <string>
