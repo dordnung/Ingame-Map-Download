@@ -97,7 +97,7 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
 
 // SQLite 3
 void insertCategorie(string id, string name);
-void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string views, string download, string size);
+void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views, string download, string size);
 
 
 

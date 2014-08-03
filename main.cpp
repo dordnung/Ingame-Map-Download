@@ -150,10 +150,10 @@ int main(int argc, const char* argv[])
 	sqlite3_exec(db, "PRAGMA synchronous=OFF", 0, 0, 0);
 
 	// Create Tables
-	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_categories` (`id` int, `name` varchar(255) NOT NULL, `game` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
-	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_maps_v2` (`id` int NOT NULL, `categories_id` int NOT NULL, `date` int NOT NULL, `mdate` int NOT NULL, `downloads` int NOT NULL, `name` varchar(255) NOT NULL, `rating` varchar(6) NOT NULL, `views` int NOT NULL, `download` varchar(128) NOT NULL, `size` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
-	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_info` (`table_date` varchar(12) NOT NULL, `table_version` TINYINT NOT NULL, UNIQUE(`table_version`))", 0, 0, 0);
-	sqlite3_exec(db, "DELETE FROM `mapdl_info`", 0, 0, 0);
+	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_categories_v2` (`id` int, `name` varchar(255) NOT NULL, `game` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
+	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_maps_v2` (`id` int NOT NULL, `categories_id` int NOT NULL, `date` int NOT NULL, `mdate` int NOT NULL, `downloads` int NOT NULL, `name` varchar(255) NOT NULL, `rating` varchar(6) NOT NULL, `votes` int NOT NULL, `views` int NOT NULL, `download` varchar(128) NOT NULL, `size` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
+	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_info_v2` (`table_date` varchar(12) NOT NULL, `table_version` TINYINT NOT NULL, UNIQUE(`table_version`))", 0, 0, 0);
+	sqlite3_exec(db, "DELETE FROM `mapdl_info_v2`", 0, 0, 0);
 
 	if (!useArg)
 	{
@@ -180,7 +180,7 @@ int main(int argc, const char* argv[])
 		strftime(timeBuffer, sizeof(timeBuffer), "%Y%m%d", localtime((const time_t*)&startTime));
 	#endif
 	// Update time info
-	string query = "INSERT INTO `mapdl_info` (`table_date`, `table_version`) VALUES ('" + (string)timeBuffer + "', 2)";
+	string query = "INSERT INTO `mapdl_info_v2` (`table_date`, `table_version`) VALUES ('" + (string)timeBuffer + "', 2)";
 	
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 
@@ -378,7 +378,7 @@ void OnGotMapsPage(char *error, string result, string url, string data)
 					return;
 				}
 
-				getPageMultiThread(OnGotMapDetails, "http://gamebanana.com/api?request=Map." + data + ".[%22catid%22,%20%22date%22,%20%22mdate%22,%20%22downloads%22,%20%22name%22,%20%22rating%22,%20%22views%22,%20%20{%22Downloadable%28%29%22:[%22sGetLocalDownloadUrl%28%29%22]},%20{%22Downloadable%28%29%22:[%22nGetFilesize%28%29%22]}]", data);
+				getPageMultiThread(OnGotMapDetails, "http://gamebanana.com/api?request=Map." + data + ".[%22catid%22,%20%22date%22,%20%22mdate%22,%20%22downloads%22,%20%22name%22,%20%22rating%22,%20%22votes%22,%20%22views%22,%20%20{%22Downloadable%28%29%22:[%22sGetLocalDownloadUrl%28%29%22]},%20{%22Downloadable%28%29%22:[%22nGetFilesize%28%29%22]}]", data);
 			}
 		}
 		else
@@ -419,7 +419,7 @@ void OnGotMapDetails(char *error, string result, string url, string data)
 		root = root[0];
 
 		// Check all information
-		if (root.size() == 9)
+		if (root.size() == 10)
 		{
 			// We have to temp. save the values, so we can check for valid data
 			char fileSizeString[32];
@@ -429,6 +429,7 @@ void OnGotMapDetails(char *error, string result, string url, string data)
 			string downloads = "0";
 			string name = "";
 			string rating = "0.00";
+			string votes = "0";
 			string views = "0";
 			string download = "";
 			float fileSize = 0.0;
@@ -467,17 +468,22 @@ void OnGotMapDetails(char *error, string result, string url, string data)
 
 			if (root[6].isInt())
 			{
-				views = to_string(root[6].asInt());
+				votes = to_string(root[6].asInt());
 			}
 
-			if (root[7].isString())
+			if (root[7].isInt())
 			{
-				download = root[7].asString();
+				views = to_string(root[7].asInt());
 			}
 
-			if (root[8].isInt())
+			if (root[8].isString())
 			{
-				fileSize = (float)root[8].asInt();
+				download = root[8].asString();
+			}
+
+			if (root[9].isInt())
+			{
+				fileSize = (float)root[9].asInt();
 			}
 
 
@@ -516,7 +522,7 @@ void OnGotMapDetails(char *error, string result, string url, string data)
 
 
 			// Sqlite operation in thread
-			thread t1(insertMap, data, categorie, date, mdate, downloads, name, rating, views, download, fileSizeString);
+			thread t1(insertMap, data, categorie, date, mdate, downloads, name, rating, votes, views, download, fileSizeString);
 			t1.join();
 		}
 		else
@@ -832,24 +838,24 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp)
 // Insert a new Categorie
 void insertCategorie(string id, string name)
 {
-	string query = "INSERT OR IGNORE INTO `mapdl_categories` (`id`, `name`, `game`) VALUES ('"+ id +"', '" + name + "', '" + game + "')";
+	string query = "INSERT OR IGNORE INTO `mapdl_categories_v2` (`id`, `name`, `game`) VALUES ('" + id + "', '" + name + "', '" + game + "')";
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 
-	query = "UPDATE `mapdl_categories` SET `id` = '" + id + "', `name` = '" + name + "', `game` = '" + game + "'";
+	query = "UPDATE `mapdl_categories_v2` SET `id` = '" + id + "', `name` = '" + name + "', `game` = '" + game + "'";
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 }
 
 
 // Insert a new Map
-void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string views, string download, string size)
+void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views, string download, string size)
 {
-	string query = "INSERT OR IGNORE INTO `mapdl_maps_v2` (`id`, `categories_id`, `date`, `mdate`, `downloads`, `name`, `rating`, `views`, `download`, `size`) VALUES (" + id + ", " + categorie + ", " + date + ", " + mdate + ", " + downloads + ", '" + name + "', '" + rating + "', " + views + ", '" + download + "', '" + size + "')";
+	string query = "INSERT OR IGNORE INTO `mapdl_maps_v2` (`id`, `categories_id`, `date`, `mdate`, `downloads`, `name`, `rating`, `votes`, `views`, `download`, `size`) VALUES (" + id + ", " + categorie + ", " + date + ", " + mdate + ", " + downloads + ", '" + name + "', '" + rating + "', " + votes + ", " + views + ", '" + download + "', '" + size + "')";
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 
-	query = "UPDATE `mapdl_maps_v2` SET `id` = " + id + ", `categories_id` = " + categorie + ", `date` = " + date + ", `mdate` = " + mdate + ", `downloads` = " + downloads + ", `name` = '" + name + "', `rating` = '" + rating + "', `views` = " + views + ", `download` = '" + download + "', `size` = '" + size + "'";
+	query = "UPDATE `mapdl_maps_v2` SET `id` = " + id + ", `categories_id` = " + categorie + ", `date` = " + date + ", `mdate` = " + mdate + ", `downloads` = " + downloads + ", `name` = '" + name + "', `rating` = '" + rating + "', `votes` = " + votes + ", `views` = " + views + ", `download` = '" + download + "', `size` = '" + size + "'";
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 }
