@@ -28,5 +28,6 @@
 
 # Builds
 *.exe
+*.sq3
 Release*/
 Debug*/
