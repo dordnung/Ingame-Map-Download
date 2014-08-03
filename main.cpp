@@ -7,7 +7,7 @@
  * -----------------------------------------------------
  * 
  * Gamebanana Maplister
- * Copyright (C) 2012-2013 David <popoklopsi> Ordnung
+ * Copyright (C) 2012-2014 David <popoklopsi> Ordnung
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>
 */
+
 
 // Header
 #include "main.h"
@@ -149,10 +150,10 @@ int main(int argc, const char* argv[])
 	sqlite3_exec(db, "PRAGMA synchronous=OFF", 0, 0, 0);
 
 	// Create Tables
-	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_categories` (`id` integer PRIMARY KEY, `name` varchar(255) NOT NULL, `game` varchar(24) NOT NULL, UNIQUE (name, game))", 0, 0, 0);
-	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_maps` (`categories_id` tinyint NOT NULL, `mapname` varchar(255) NOT NULL, `mapID` int NOT NULL, `file` varchar(128) NOT NULL, `size` varchar(24) NOT NULL, PRIMARY KEY(file))", 0, 0, 0);
-	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_info` (`table_version` varchar(12) NOT NULL, UNIQUE (table_version))", 0, 0, 0);
-	sqlite3_exec(db, "DELETE * FROM `mapdl_info`", 0, 0, 0);
+	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_categories` (`id` int, `name` varchar(255) NOT NULL, `game` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
+	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_maps_v2` (`id` int NOT NULL, `categories_id` int NOT NULL, `date` int NOT NULL, `mdate` int NOT NULL, `downloads` int NOT NULL, `name` varchar(255) NOT NULL, `rating` varchar(6) NOT NULL, `views` int NOT NULL, `download` varchar(128) NOT NULL, `size` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
+	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_info` (`table_date` varchar(12) NOT NULL, `table_version` TINYINT NOT NULL, UNIQUE(`table_version`))", 0, 0, 0);
+	sqlite3_exec(db, "DELETE FROM `mapdl_info`", 0, 0, 0);
 
 	if (!useArg)
 	{
@@ -169,10 +170,17 @@ int main(int argc, const char* argv[])
 
 	// Set time start
 	startTime = time(0);
-	strftime(timeBuffer, sizeof(timeBuffer), "%Y%m%d", localtime((const time_t*)&startTime));
+	
+	#ifdef _WIN32
+		struct tm time_info;
+		localtime_s(&time_info, (const time_t*)&startTime);
 
+		strftime(timeBuffer, sizeof(timeBuffer), "%Y%m%d", &time_info);
+	#else
+		strftime(timeBuffer, sizeof(timeBuffer), "%Y%m%d", localtime((const time_t*)&startTime));
+	#endif
 	// Update time info
-	string query = "INSERT INTO `mapdl_info` (`table_version`) VALUES ('" + (string)timeBuffer + "')";
+	string query = "INSERT INTO `mapdl_info` (`table_date`, `table_version`) VALUES ('" + (string)timeBuffer + "', 2)";
 	
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 
@@ -191,9 +199,8 @@ int main(int argc, const char* argv[])
 			getGame(i);
 		}
 
-		getPage(OnGotCategorieDetails, "http://" + game + ".gamebanana.com/maps", "", "");
+		getPage(OnGotCategorieDetails, "http://" + game + ".gamebanana.com/maps", "");
 	}
-
 
 
 	// Now start searching
@@ -214,7 +221,7 @@ int main(int argc, const char* argv[])
 
 
 		// Start all :)
-		getPage(OnGotMainPage, "http://" + game + ".gamebanana.com/maps", "", "");
+		getPage(OnGotMainPage, "http://" + game + ".gamebanana.com/maps", "");
 
 
 		// New line
@@ -263,7 +270,7 @@ int main(int argc, const char* argv[])
 
 
 // We got the categories pages
-void OnGotMainPage(char *error, string result, string url, string data, string data2)
+void OnGotMainPage(char *error, string result, string url, string data)
 {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "")
@@ -313,7 +320,7 @@ void OnGotMainPage(char *error, string result, string url, string data, string d
 
 
 		// Now read all pages
-		OnGotMapsPage("", result, url, data, data2);
+		OnGotMapsPage("", result, url, data);
 
 
 		for (int i=2; i <= pages; i++)
@@ -322,12 +329,12 @@ void OnGotMainPage(char *error, string result, string url, string data, string d
 			stringstream ss;
 			ss << i;
 
-			getPage(OnGotMapsPage, url + "?vl[page]=" + ss.str() + "&mid=SubmissionsList", data, data2);
+			getPage(OnGotMapsPage, url + "?vl[page]=" + ss.str() + "&mid=SubmissionsList", data);
 		}
 	}
 	else
 	{
-		getPage(OnGotMainPage, url, data, data2);
+		getPage(OnGotMainPage, url, data);
 	}
 }
 
@@ -337,116 +344,53 @@ void OnGotMainPage(char *error, string result, string url, string data, string d
 
 
 // Open a new Page
-void OnGotMapsPage(char *error, string result, string url, string data, string data2)
+void OnGotMapsPage(char *error, string result, string url, string data)
 {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "")
 	{
-		// Splitter for pages
-		vector<std::string> founds = splitString(result, "<div class=\"Category\">", "</h4>");
+		// Splitter for Maps
+		vector<std::string> founds = splitString(result, "class=\"Name\"", "</a>");
 
-		// Must be 3
+		// Must be at least 2
 		if (founds.size() > 1)
 		{
 			for (unsigned int i=1; i < founds.size(); i++)
 			{
 				string found = founds[i];
 
+				// Split for mapID
+				vector<std::string> idSplit = splitString(found, "maps/", "\">");
 
-				// Split for categorie
-				vector<std::string> catsplit = splitString(found, "<acronym title=\"", "</div>");
-
-				if (catsplit.size() == 2)
+				if (idSplit.size() == 2)
 				{
-					vector<std::string> catsplit2 = splitString(catsplit[1], "\">", "</a>");
+					// Replace garbage
+					replaceString(idSplit[1], "\n", "");
+					replaceString(idSplit[1], "\t", "");
+					replaceString(idSplit[1], "<br>", "");
 
-					// Must be 3
-					if (catsplit2.size() == 3)
-					{
-						// Replace garbage
-						replaceString(catsplit2[2], "\n", "");
-						replaceString(catsplit2[2], "\t", "");
-						replaceString(catsplit2[2], "<br>", "");
-
-						data2 = catsplit2[2];
-					}
-					else
-					{
-						cout << "ERROR: Couldn't get categorie name. Program seems to be outdated..." << endl;
-
-						return;
-					}
+					data = idSplit[1];
 				}
 				else
 				{
-					cout << "ERROR: Couldn't get categorie split. Program seems to be outdated..." << endl;
+					cout << "ERROR: Couldn't get mapID split. Program seems to be outdated..." << endl;
 
 					return;
 				}
 
-
-				// Split again
-				vector<std::string> strongSplit = splitString(found, "<h4>", "</a>");
-
-
-				// Must be 2
-				if (strongSplit.size() == 2)
-				{
-					vector<std::string> strongerSplit = splitString(strongSplit[1], "href=\"");
-
-					// Must be 2
-					if (strongerSplit.size() == 2)
-					{
-						string foundStrong = strongerSplit[1];
-
-						// Replace garbage
-						replaceString(foundStrong, "\n", "");
-						replaceString(foundStrong, "\t", "");
-						replaceString(foundStrong, "<br>", "");
-
-
-						// Get Final link
-						vector<std::string> linkName = splitString(foundStrong, "\">");
-
-						// Also must be 2
-						if (linkName.size() == 2)
-						{
-							replaceString(linkName[0], "maps/", "maps/download/");
-
-							getPageMultiThread(OnGotMapDownload, linkName[0], linkName[1], data2);
-						}
-						else
-						{
-							cout << "ERROR: Couldn't get map link and name. Program seems to be outdated..." << endl;
-
-							return;
-						}
-					}
-					else
-					{
-						cout << "ERROR: Couldn't get map link and name split. Program seems to be outdated..." << endl;
-
-						return;
-					}
-				}
-				else
-				{
-					cout << "ERROR: Couldn't get map name and link head. Program seems to be outdated..." << endl;
-
-					return;
-				}
+				getPageMultiThread(OnGotMapDetails, "http://gamebanana.com/api?request=Map." + data + ".[%22catid%22,%20%22date%22,%20%22mdate%22,%20%22downloads%22,%20%22name%22,%20%22rating%22,%20%22views%22,%20%20{%22Downloadable%28%29%22:[%22sGetLocalDownloadUrl%28%29%22]},%20{%22Downloadable%28%29%22:[%22nGetFilesize%28%29%22]}]", data);
 			}
 		}
 		else
 		{
-			cout << "ERROR: Couldn't get categorie head. Programm seems to be outdated..." << endl;
+			cout << "ERROR: Couldn't get maps head. Programm seems to be outdated..." << endl;
 
 			return;
 		}
 	}
 	else
 	{
-		getPage(OnGotMapsPage, url, data, data2);
+		getPage(OnGotMapsPage, url, data);
 	}
 }
 
@@ -455,69 +399,136 @@ void OnGotMapsPage(char *error, string result, string url, string data, string d
 
 
 
-// Retrieve Map Download
-void OnGotMapDownload(char *error, string result, string url, string data, string data2)
+// Retrieve Map Details
+void OnGotMapDetails(char *error, string result, string url, string data)
 {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "")
 	{
-		// File size
-		string fileSize = "0";
+		// Read information of the map
+		Json::Value root;
+		Json::Reader reader;
 
-		// Splitter for download name
-		vector<std::string> founds = splitString(result, "<dt>File</dt>", "</dd>");
-		vector<std::string> sizes = splitString(result, "<dt>Filesize</dt>", "</dd>");
-
-
-		// Check file size
-		if (sizes.size() == 2)
+		if (!reader.parse(result, root) && root.size() == 1)
 		{
-			replaceString(sizes[1], "\n", "");
-			replaceString(sizes[1], "\t", "");
-			replaceString(sizes[1], "<br>", "");
-			replaceString(sizes[1], "<dd>", "");
-
-			fileSize = sizes[1];
-		}
-		else
-		{
-			cout << "ERROR: Couldn't get map size. Program seems to be outdated..." << endl;
+			cout << "ERROR: Couldn't read map information. Program seems to be outdated..." << endl;
 
 			return;
 		}
 
-		// Must be 2
-		if (founds.size() == 2)
+		root = root[0];
+
+		// Check all information
+		if (root.size() == 9)
 		{
-			string mapFile = founds[1];
+			// We have to temp. save the values, so we can check for valid data
+			char fileSizeString[32];
+			string categorie = "";
+			string date = "";
+			string mdate = "";
+			string downloads = "0";
+			string name = "";
+			string rating = "0.00";
+			string views = "0";
+			string download = "";
+			float fileSize = 0.0;
 
-			// Replace garbage
-			replaceString(mapFile, "\n", "");
-			replaceString(mapFile, "\t", "");
-			replaceString(mapFile, "<br>", "");
-			replaceString(mapFile, "<dd>", "");
 
+			// Check if root have valid data
+			if (root[0].isInt())
+			{
+				categorie = to_string(root[0].asInt());
+			}
+
+			if (root[1].isInt())
+			{
+				date = to_string(root[1].asInt());
+			}
+
+			if (root[2].isInt())
+			{
+				mdate = to_string(root[2].asInt());
+			}
+
+			if (root[3].isInt())
+			{
+				downloads = to_string(root[3].asInt());
+			}
+
+			if (root[4].isString())
+			{
+				name = root[4].asString();
+			}
+
+			if (root[5].isString())
+			{
+				rating = root[5].asString();
+			}
+
+			if (root[6].isInt())
+			{
+				views = to_string(root[6].asInt());
+			}
+
+			if (root[7].isString())
+			{
+				download = root[7].asString();
+			}
+
+			if (root[8].isInt())
+			{
+				fileSize = (float)root[8].asInt();
+			}
+
+
+			// Give FileSize a nice layout
+			#ifdef _WIN32
+				sprintf_s(fileSizeString, "%.2f B", fileSize);
+			#else
+				sprintf(fileSizeString, "%.2f B", fileSize);
+			#endif
+
+			if (fileSize > 1024.0)
+			{
+				fileSize /= 1024.0;
+
+				#ifdef _WIN32
+					sprintf_s(fileSizeString, "%.2f KB", fileSize);
+				#else
+					sprintf(fileSizeString, "%.2f KB", fileSize);
+				#endif
+
+				if (fileSize > 1024.0)
+				{
+					fileSize /= 1024.0;
+
+					#ifdef _WIN32
+						sprintf_s(fileSizeString, "%.2f MB", fileSize);
+					#else
+						sprintf(fileSizeString, "%.2f MB", fileSize);
+					#endif
+				}
+			}
+
+
+			// Update and print the current status
 			printStatus();
 
 
-			// Get View Link
-			replaceString(url, "http://" + game + ".gamebanana.com/maps/download/", "");
-
-
 			// Sqlite operation in thread
-			thread t1(insertMap, data2, data, url, mapFile, fileSize);
-			t1.detach();
+			thread t1(insertMap, data, categorie, date, mdate, downloads, name, rating, views, download, fileSizeString);
+			t1.join();
 		}
 		else
 		{
-			cout << "ERROR: Couldn't get map download link. Program seems to be outdated..." << endl;
+			cout << "ERROR: Couldn't get map information. Program seems to be outdated..." << endl;
 
 			return;
 		}
 	}
 	else
 	{
-		getPageMultiThread(OnGotMapDownload, url, data, data2);
+		getPageMultiThread(OnGotMapDetails, url, data);
 	}
 }
 
@@ -527,7 +538,7 @@ void OnGotMapDownload(char *error, string result, string url, string data, strin
 
 
 // Get Information about categories and maps
-void OnGotCategorieDetails(char *error, string result, string url, string data, string data2)
+void OnGotCategorieDetails(char *error, string result, string url, string data)
 {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "")
@@ -535,22 +546,21 @@ void OnGotCategorieDetails(char *error, string result, string url, string data, 
 		// Splitter for categories
 		vector<std::string> founds = splitString(result, "<ul class=\"Categories\">", "</ul>");
 
-		// All maps
-		vector<std::string> mapCount = splitString(result, "<small>", "Maps");
-
 
 		// Found Categories?
 		if (founds.size() == 2)
 		{
 			// Replace garbage
-			replaceString(founds[1], "<sup class=\"OrangeColor\">Pending</sup>", "");
-			replaceString(founds[1], " ", "");
+			replaceString(founds[1], "<span class=\"LabelState IsPending\">Pending</span>", "");
 			replaceString(founds[1], "\n", "");
 			replaceString(founds[1], "\t", "");
 			replaceString(founds[1], "\r", "");
 
+			// All maps
+			vector<std::string> mapCount = splitString(founds[1], "<div class=\"Tooltip\">", "Maps");
+
 			// Splitter again for categories
-			vector<std::string> linkName = splitString(founds[1], "\">", "</a>");
+			vector<std::string> linkName = splitString(founds[1], "<a href=\"", "</a>");
 
 
 			if (linkName.size() <= 1)
@@ -589,20 +599,42 @@ void OnGotCategorieDetails(char *error, string result, string url, string data, 
 			// Loop for result
 			for (unsigned int i = 1; i < linkName.size(); i++)
 			{
-				// Insert new Typ
-				insertCategorie(linkName[i]);
+				vector<std::string> realLinkName = splitString(linkName[i], "cats/");
+
+				if (realLinkName.size() == 2)
+				{
+					vector<std::string> realCatId = splitString(realLinkName[1], "\">");
+
+					if (realCatId.size() == 2)
+					{
+						// Insert new Typ
+						insertCategorie(realCatId[0], realCatId[1]);
+					}
+					else
+					{
+						cout << "ERROR: Couldn't get real catid. Program seems to be outdated..." << endl;
+
+						return;
+					}
+				}
+				else
+				{
+					cout << "ERROR: Couldn't get real link name. Program seems to be outdated..." << endl;
+
+					return;
+				}
 			}
 		}
 		else
 		{
-			cout << "ERROR: Couldn't get pre categorie head. Program seems to be outdated..." << endl;
+			cout << "ERROR: Couldn't get categorie head. Program seems to be outdated..." << endl;
 
 			return;
 		}
 	}
 	else
 	{
-		getPage(OnGotCategorieDetails, url, data, data2);
+		getPage(OnGotCategorieDetails, url, data);
 	}
 }
 
@@ -702,17 +734,18 @@ void getGame(int gameInt)
 
 
 // Get Page joinable
-void getPage(callback function, string page, string data, string data2)
+void getPage(callback function, string page, string data)
 {
-	thread t1(getPageThread, function, page, data, data2);
+	thread t1(getPageThread, function, page, data);
+
 	t1.join();
 }
 
 
 // Get Page detached
-void getPageMultiThread(callback function, string page, string data, string data2)
+void getPageMultiThread(callback function, string page, string data)
 {
-	thread t1(getPageThread, function, page, data, data2);
+	thread t1(getPageThread, function, page, data);
 
 	t1.detach();
 }
@@ -720,7 +753,7 @@ void getPageMultiThread(callback function, string page, string data, string data
 
 
 // Thread for curl
-void getPageThread(callback function, string page, string data, string data2)
+void getPageThread(callback function, string page, string data)
 {
 	// Error
 	char ebuf[CURL_ERROR_SIZE];
@@ -750,12 +783,12 @@ void getPageThread(callback function, string page, string data, string data2)
 		// Everything good :)
 		if (res == CURLE_OK)
 		{
-			function("", stream.str(), page, data, data2);
+			function("", stream.str(), page, data);
 		}
 		else
 		{
 			// Error ):
-			function(ebuf, stream.str(), page, data, data2);
+			function(ebuf, stream.str(), page, data);
 		}
 
 		// Clean Curl
@@ -766,7 +799,7 @@ void getPageThread(callback function, string page, string data, string data2)
 	}
 
 	// Other error
-	function("", "", page, data, data2);
+	function("", "", page, data);
 }
 
 
@@ -797,22 +830,29 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp)
 
 
 // Insert a new Categorie
-void insertCategorie(string name)
+void insertCategorie(string id, string name)
 {
-	string query = "INSERT INTO `mapdl_categories` (`id`, `name`, `game`) VALUES (NULL, '" + name + "', '" + game + "')";
+	string query = "INSERT OR IGNORE INTO `mapdl_categories` (`id`, `name`, `game`) VALUES ('"+ id +"', '" + name + "', '" + game + "')";
+
+	sqlite3_exec(db, query.c_str(), 0, 0, 0);
+
+	query = "UPDATE `mapdl_categories` SET `id` = '" + id + "', `name` = '" + name + "', `game` = '" + game + "'";
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 }
 
 
 // Insert a new Map
-void insertMap(string categorie, string name, string link, string download, string size)
+void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string views, string download, string size)
 {
-	string query = "INSERT INTO `mapdl_maps` (`categories_id`, `mapname`, `mapID`, `file`, `size`) SELECT mapdl_categories.id, '" + name + "', " + link + ", '" + download + "', '" + size + "' FROM `mapdl_categories` WHERE mapdl_categories.name = '" + categorie + "' AND mapdl_categories.game = '" + game + "'";
+	string query = "INSERT OR IGNORE INTO `mapdl_maps_v2` (`id`, `categories_id`, `date`, `mdate`, `downloads`, `name`, `rating`, `views`, `download`, `size`) VALUES (" + id + ", " + categorie + ", " + date + ", " + mdate + ", " + downloads + ", '" + name + "', '" + rating + "', " + views + ", '" + download + "', '" + size + "')";
+
+	sqlite3_exec(db, query.c_str(), 0, 0, 0);
+
+	query = "UPDATE `mapdl_maps_v2` SET `id` = " + id + ", `categories_id` = " + categorie + ", `date` = " + date + ", `mdate` = " + mdate + ", `downloads` = " + downloads + ", `name` = '" + name + "', `rating` = '" + rating + "', `views` = " + views + ", `download` = '" + download + "', `size` = '" + size + "'";
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 }
-
 
 
 

@@ -42,6 +42,8 @@
 // Sqlite
 #include <sqlite3.h>
 
+// Json
+#include "json/json.h"
 
 
 
@@ -62,7 +64,7 @@ using namespace std;
 
 
 // Thread for Curl Performances
-typedef void (*callback)(char*, string, string, string, string);
+typedef void (*callback)(char*, string, string, string);
 
 
 
@@ -70,10 +72,10 @@ typedef void (*callback)(char*, string, string, string, string);
 
 
 // Main Methods
-void OnGotMainPage(char *error, string result, string url, string data, string data2);
-void OnGotMapsPage(char *error, string result, string url, string data, string data2);
-void OnGotMapDownload(char *error, string result, string url, string data, string data2);
-void OnGotCategorieDetails(char *error, string result, string url, string data, string data2);
+void OnGotMainPage(char *error, string result, string url, string data);
+void OnGotMapsPage(char *error, string result, string url, string data);
+void OnGotMapDetails(char *error, string result, string url, string data);
+void OnGotCategorieDetails(char *error, string result, string url, string data);
 
 // Print current status
 void printStatus();
@@ -84,9 +86,9 @@ void getGame(int gameInt);
 
 
 // Curl
-void getPage(callback function, string page, string data, string data2);
-void getPageMultiThread(callback function, string page, string data, string data2);
-void getPageThread(callback function, string page, string data, string data2);
+void getPage(callback function, string page, string data);
+void getPageMultiThread(callback function, string page, string data);
+void getPageThread(callback function, string page, string data);
 
 size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
 
@@ -94,8 +96,8 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
 
 
 // SQLite 3
-void insertCategorie(string name);
-void insertMap(string categorie, string name, string link, string download, string size);
+void insertCategorie(string id, string name);
+void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string views, string download, string size);
 
 
 
