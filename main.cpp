@@ -284,8 +284,8 @@ void OnGotMainPage(char *error, string result, string url, string data)
 		vector<std::string> founds = splitString(result, "class=\"CurrentPage\">");
 
 
-		// Must be 3
-		if (founds.size() == 3)
+		// Must be 2
+		if (founds.size() == 2)
 		{
 			string found = founds[1];
 
