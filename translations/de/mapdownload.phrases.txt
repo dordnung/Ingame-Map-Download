@@ -1,0 +1,99 @@
+"Phrases"
+{
+	"DBWait"
+	{
+		"de"		"{lightgreen}Aktualisiert Datenbank. {green}Bitte Warten.."
+	}
+	"Notice"
+	{
+		"de"		"{lightgreen}Schreibe {green}!{1} [suchmuster] {lightgreen}um die {green}Map Liste {lightgreen}zu öffnen"
+	}
+	"Notice2"
+	{
+		"de"		"{lightgreen}Schreibe {green}!{1} [suchmuster] {lightgreen}um die {green}Eigene Map Liste {lightgreen}zu öffnen"
+	}
+	"Notice3"
+	{
+		"de"		"{lightgreen}Du kannst {green}%% {lightgreen}als {green}Such-Wildcard {lightgreen}benutzen"
+	}
+	"Wait"
+	{
+		"de"		"{lightgreen}Die Maximale Anzahl von {green}20 Downloads erreicht. {lightgreen}Bitte warten!"
+	}
+	"Login"
+	{
+		"de"		"{lightgreen}Schreibe in deine CONSOLE {green}'{1} <user> <pass>' {lightgreen}um dich auf den {green}FTP Server anzumelden"
+	}
+	"ChooseTyp"
+	{
+		"de"		"Wähle eine Kategorie:"
+	}
+	"Maps"
+	{
+		"de"		"Map(s)"
+	}
+	"ChooseMap"
+	{
+		"de"		"Wähle eine Map:"
+	}
+	"Empty"
+	{
+		"de"		"{lightgreen}Keine Ergebnisse {green}für {1} {lightgreen}gefunden!"
+	}
+	"Found"
+	{
+		"de"		"Maps gefunden für: {1}"
+	}
+	"Download"
+	{
+		"de"		"Downloade Map: {1}"
+	}
+	"Motd"
+	{
+		"de"		"Zeige mehr Informationen in der MOTD"
+	}
+	"Yes"
+	{
+		"de"		"Ja"
+	}
+	"Downloading"
+	{
+		"de"		"Downloade Map"
+	}
+	"Uploading"
+	{
+		"de"		"Uploade Map"
+	}
+	"Compressing"
+	{
+		"de"		"Komprimiere Map"
+	}
+	"Queue"
+	{
+		"de"		"{1} Download(s) in der Warteschlange"
+	}
+	"Failed"
+	{
+		"de"		"{lightgreen}Map Download fehlgeschlagen. {green}Fehler: {1}!"
+	}
+	"Invalid"
+	{
+		"de"		"{lightgreen}Konnte keine {green}gültige Map Datei {lightgreen}finden!"
+	}
+	"OnlyNav"
+	{
+		"de"		"{lightgreen}Konnte nur eine {green}Navigations Datei {lightgreen}finden!"
+	}
+	"FoundMap"
+	{
+		"de"		"{lightgreen}Installierte Map: {green}{1}.bsp"
+	}
+	"Finish"
+	{
+		"de"		"{green}Map {1} {lightgreen}erfolgreich gedownloadet und installiert."
+	}
+	"FinishHint"
+	{
+		"de"		"Map erfolgreich heruntergeladen: {1}"
+	}
+}

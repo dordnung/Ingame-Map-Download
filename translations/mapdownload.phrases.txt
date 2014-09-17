@@ -1,0 +1,110 @@
+"Phrases"
+{
+	"DBWait"
+	{
+		"en"		"{lightgreen}Updating database, {green}please wait..."
+	}
+	"Notice"
+	{
+		"#format"	"{1:s}"
+		"en"		"{lightgreen}Type {green}!{1} [searchmask] {lightgreen}to open the {green}Map List"
+	}
+	"Notice2"
+	{
+		"#format"	"{1:s}"
+		"en"		"{lightgreen}Type {green}!{1} [searchmask] {lightgreen}to open the {green}Custom Map List"
+	}
+	"Notice3"
+	{
+		"en"		"{lightgreen}You can use {green}%% {lightgreen}as a {green}search-wildcard"
+	}
+	"Wait"
+	{
+		"en"		"{lightgreen}The maximum of {green}20 Downloads reached. {lightgreen}Please wait!"
+	}
+	"Login"
+	{
+		"#format"	"{1:s}"
+		"en"		"{lightgreen}Type in your CONSOLE {green}'{1} <user> <pass>' {lightgreen}to login to your {green}FTP Server"
+	}
+	"ChooseTyp"
+	{
+		"en"		"Choose a Category:"
+	}
+	"Maps"
+	{
+		"en"		"Map/s"
+	}
+	"ChooseMap"
+	{
+		"en"		"Choose a Map:"
+	}
+	"Empty"
+	{
+		"#format"	"{1:s}"
+		"en"		"{lightgreen}No results found {green}for {1}!"
+	}
+	"Found"
+	{
+		"#format"	"{1:s}"
+		"en"		"Maps found for: {1}"
+	}
+	"Download"
+	{
+		"#format"	"{1:s}"
+		"en"		"Download Map: {1}"
+	}
+	"Motd"
+	{
+		"en"		"Show more information in MOTD"
+	}
+	"Yes"
+	{
+		"en"		"Yes"
+	}
+	"Downloading"
+	{
+		"en"		"Downloading Map"
+	}
+	"Uploading"
+	{
+		"en"		"Uploading Map"
+	}
+	"Compressing"
+	{
+		"en"		"Compressing Map"
+	}
+	"Queue"
+	{
+		"#format"	"{1:i}"
+		"en"		"{1} Download(s) in Queue"
+	}
+	"Failed"
+	{
+		"#format"	"{1:s}"
+		"en"		"{lightgreen}Map Download failed. {green}Error: {1}!"
+	}
+	"Invalid"
+	{
+		"en"		"{lightgreen}Couldn't find a {green}valid Map file!"
+	}
+	"OnlyNav"
+	{
+		"en"		"{lightgreen}Only found a {green}navigation file!"
+	}
+	"FoundMap"
+	{
+		"#format"	"{1:s}"
+		"en"		"{lightgreen}Installed Map: {green}{1}.bsp"
+	}
+	"Finish"
+	{
+		"#format"	"{1:s}"
+		"en"		"{lightgreen}Successfully downloaded and installed {green}Map {1}."
+	}
+	"FinishHint"
+	{
+		"#format"	"{1:s}"
+		"en"		"Successfully downloaded Map: {1}"
+	}
+}
