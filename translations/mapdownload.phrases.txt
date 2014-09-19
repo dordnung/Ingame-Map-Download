@@ -2,17 +2,17 @@
 {
 	"DBWait"
 	{
-		"en"		"{lightgreen}Updating database, {green}please wait..."
+		"en"		"{lightgreen}Updating database... {green}Please wait."
 	}
 	"Notice"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}Type {green}!{1} [searchmask] {lightgreen}to open the {green}Map List"
+		"en"		"{lightgreen}Type {green}!{1} [searchmask] {lightgreen}to open the {green}map list"
 	}
 	"Notice2"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}Type {green}!{1} [searchmask] {lightgreen}to open the {green}Custom Map List"
+		"en"		"{lightgreen}Type {green}!{1} [searchmask] {lightgreen}to open the {green}custom map list"
 	}
 	"Notice3"
 	{
@@ -20,16 +20,134 @@
 	}
 	"Wait"
 	{
-		"en"		"{lightgreen}The maximum of {green}20 Downloads reached. {lightgreen}Please wait!"
+		"en"		"{lightgreen}The maximum of {green}20 downloads reached. {lightgreen}Please wait!"
 	}
 	"Login"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}Type in your CONSOLE {green}'{1} <user> <pass>' {lightgreen}to login to your {green}FTP Server"
+		"en"		"{lightgreen}Type {green}'{1} <user> <pass>' in your CONSOLE {lightgreen}to login to your {green}FTP Server"
 	}
-	"ChooseTyp"
+	"Downloads"
 	{
-		"en"		"Choose a Category:"
+		"#format"	"{1:s}"
+		"en"		"Downloads: {1}"
+	}
+	"Rating"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Rating: {1} ({2} vote/s)"
+	}
+	"Views"
+	{
+		"#format"	"{1:s}"
+		"en"		"Views: {1}"
+	}
+	"Created"
+	{
+		"#format"	"{1:s}"
+		"en"		"Creation Date: {1}"
+	}
+	"LatestModified"
+	{
+		"#format"	"{1:s}"
+		"en"		"Last modified: {1}"
+	}
+	"Size"
+	{
+		"#format"	"{1:s}"
+		"en"		"Size: {1}"
+	}
+	"DownloadsTitle"
+	{
+		"en"		"download/s"
+	}
+	"ViewsTitle"
+	{
+		"en"		"view/s"
+	}
+	"RatingTitle"
+	{
+		"en"		"rating"
+	}
+	"DownloadsShort"
+	{
+		"en"		"DLs"
+	}
+	"ChooseCategory"
+	{
+		"en"		"Choose a category:"
+	}
+	"ChooseSortType"
+	{
+		"en"		"Choose a sort type:"
+	}
+	"AllMaps"
+	{
+		"en"		"All maps"
+	}
+	"NewestMaps"
+	{
+		"en"		"Newest maps"
+	}
+	"LatestModifiedMaps"
+	{
+		"en"		"Latest modified maps"
+	}
+	"MostDownloadedMaps"
+	{
+		"en"		"Most downloaded maps"
+	}
+	"MostViewedMaps"
+	{
+		"en"		"Most viewed maps"
+	}
+	"BestRatedMaps"
+	{
+		"en"		"Best rated maps"
+	}
+	"SortByName"
+	{
+		"en"		"By Name"
+	}
+	"SortByDate"
+	{
+		"en"		"By creation date"
+	}
+	"SortByMDate"
+	{
+		"en"		"By last modification date"
+	}
+	"SortByDownloads"
+	{
+		"en"		"By number of downloads"
+	}
+	"SortByViews"
+	{
+		"en"		"By number of views"
+	}
+	"SortByRating"
+	{
+		"en"		"By rating"
+	}
+	"SortConfig"
+	{
+		"en"		"Configure"
+	}
+	"ChooseSortType"
+	{
+		"en"		"Choose a sort type for 'All Maps'"
+	}
+	"Ascending"
+	{
+		"en"		"Sort in ascending order"
+	}
+	"Descending"
+	{
+		"en"		"Sort in descending order"
+	}
+	"Map"
+	{
+		"en"		"Map"
 	}
 	"Maps"
 	{
@@ -37,7 +155,7 @@
 	}
 	"ChooseMap"
 	{
-		"en"		"Choose a Map:"
+		"en"		"Choose a map:"
 	}
 	"Empty"
 	{
@@ -51,42 +169,37 @@
 	}
 	"Download"
 	{
-		"#format"	"{1:s}"
-		"en"		"Download Map: {1}"
+		"en"		"Download map"
 	}
 	"Motd"
 	{
 		"en"		"Show more information in MOTD"
 	}
-	"Yes"
-	{
-		"en"		"Yes"
-	}
 	"Downloading"
 	{
-		"en"		"Downloading Map"
+		"en"		"Downloading map"
 	}
 	"Uploading"
 	{
-		"en"		"Uploading Map"
+		"en"		"Uploading map"
 	}
 	"Compressing"
 	{
-		"en"		"Compressing Map"
+		"en"		"Compressing map"
 	}
 	"Queue"
 	{
 		"#format"	"{1:i}"
-		"en"		"{1} Download(s) in Queue"
+		"en"		"{1} download/s in queue"
 	}
 	"Failed"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}Map Download failed. {green}Error: {1}!"
+		"en"		"{lightgreen}Map download failed. {green}Error: {1}!"
 	}
 	"Invalid"
 	{
-		"en"		"{lightgreen}Couldn't find a {green}valid Map file!"
+		"en"		"{lightgreen}Couldn't find a {green}valid map file!"
 	}
 	"OnlyNav"
 	{
@@ -95,16 +208,16 @@
 	"FoundMap"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}Installed Map: {green}{1}.bsp"
+		"en"		"{lightgreen}Installed map: {green}{1}.bsp"
 	}
 	"Finish"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}Successfully downloaded and installed {green}Map {1}."
+		"en"		"{lightgreen}Successfully downloaded and installed {green}map {1}."
 	}
 	"FinishHint"
 	{
 		"#format"	"{1:s}"
-		"en"		"Successfully downloaded Map: {1}"
+		"en"		"Successfully downloaded map: {1}"
 	}
 }

@@ -2,7 +2,7 @@
 {
 	"DBWait"
 	{
-		"de"		"{lightgreen}Aktualisiert Datenbank. {green}Bitte Warten.."
+		"de"		"{lightgreen}Aktualisiert Datenbank... {green}Bitte Warten.."
 	}
 	"Notice"
 	{
@@ -18,19 +18,131 @@
 	}
 	"Wait"
 	{
-		"de"		"{lightgreen}Die Maximale Anzahl von {green}20 Downloads erreicht. {lightgreen}Bitte warten!"
+		"de"		"{lightgreen}Die Maximale Anzahl von {green}20 Downloads wurde erreicht. {lightgreen}Bitte warten!"
 	}
 	"Login"
 	{
-		"de"		"{lightgreen}Schreibe in deine CONSOLE {green}'{1} <user> <pass>' {lightgreen}um dich auf den {green}FTP Server anzumelden"
+		"de"		"{lightgreen}Schreibe {green}'{1} <user> <pass>' in deine CONSOLE {lightgreen}um dich auf den {green}FTP Server anzumelden"
 	}
-	"ChooseTyp"
+	"Downloads"
+	{
+		"de"		"Downloads: {1}"
+	}
+	"Rating"
+	{
+		"de"		"Bewertung: {1} ({2} Stimme/n)"
+	}
+	"Views"
+	{
+		"de"		"Aufrufe: {1}"
+	}
+	"Created"
+	{
+		"de"		"Erstellungsdatum: {1}"
+	}
+	"LatestModified"
+	{
+		"de"		"Letzte Modifizierung: {1}"
+	}
+	"Size"
+	{
+		"de"		"Größe: {1}"
+	}
+	"DownloadsTitle"
+	{
+		"de"		"Download/s"
+	}
+	"ViewsTitle"
+	{
+		"de"		"Aufruf/e"
+	}
+	"RatingTitle"
+	{
+		"de"		"Bewertung"
+	}
+	"DownloadsShort"
+	{
+		"de"		"DLs"
+	}
+	"ChooseCategory"
 	{
 		"de"		"Wähle eine Kategorie:"
 	}
+	"ChooseSortType"
+	{
+		"de"		"Wähle eine Sortier-Kategorie:"
+	}
+	"AllMaps"
+	{
+		"de"		"Alle Maps"
+	}
+	"SortByName"
+	{
+		"de"		"Nach dem Namen"
+	}
+	"SortByDate"
+	{
+		"de"		"Nach dem Erstellungsdatum"
+	}
+	"SortByMDate"
+	{
+		"de"		"Nach der letzten Änderung"
+	}
+	"SortByDownloads"
+	{
+		"de"		"Nach Anzahl der Downloads"
+	}
+	"SortByViews"
+	{
+		"de"		"Nach Anzahl der Seitenaufrufe"
+	}
+	"SortByRating"
+	{
+		"de"		"Nach Bewertung"
+	}
+	"SortConfig"
+	{
+		"de"		"Konfigurieren"
+	}
+	"NewestMaps"
+	{
+		"de"		"Neuste Maps"
+	}
+	"LatestModifiedMaps"
+	{
+		"de"		"Zuletzt geänderte Maps"
+	}
+	"MostDownloadedMaps"
+	{
+		"de"		"Meist gedownloadete Maps"
+	}
+	"MostViewedMaps"
+	{
+		"de"		"Meist angesehene Maps"
+	}
+	"BestRatedMaps"
+	{
+		"de"		"Best bewertete Maps"
+	}
+	"ChooseSortType"
+	{
+		"de"		"Wähle einen Sortiertyp für 'Alle Maps'"
+	}
+	"Ascending"
+	{
+		"de"		"Aufsteigend sortieren"
+	}
+	"Descending"
+	{
+		"de"		"Absteigend sortieren"
+	}
+	"Map"
+	{
+		"de"		"Map"
+	}
 	"Maps"
 	{
-		"de"		"Map(s)"
+		"de"		"Map/s"
 	}
 	"ChooseMap"
 	{
@@ -46,15 +158,11 @@
 	}
 	"Download"
 	{
-		"de"		"Downloade Map: {1}"
+		"de"		"Downloade Map"
 	}
 	"Motd"
 	{
 		"de"		"Zeige mehr Informationen in der MOTD"
-	}
-	"Yes"
-	{
-		"de"		"Ja"
 	}
 	"Downloading"
 	{
