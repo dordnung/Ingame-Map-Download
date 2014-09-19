@@ -27,6 +27,7 @@
 
 
 # Builds
+*.smx
 *.exe
 *.sq3
 Release*/
