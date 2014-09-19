@@ -842,7 +842,7 @@ void insertCategorie(string id, string name)
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 
-	query = "UPDATE `mapdl_categories_v2` SET `id` = '" + id + "', `name` = '" + name + "', `game` = '" + game + "'";
+	query = "UPDATE `mapdl_categories_v2` SET `name` = '" + name + "', `game` = '" + game + "' WHERE `id` = " + id;
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 }
@@ -855,7 +855,7 @@ void insertMap(string id, string categorie, string date, string mdate, string do
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 
-	query = "UPDATE `mapdl_maps_v2` SET `id` = " + id + ", `categories_id` = " + categorie + ", `date` = " + date + ", `mdate` = " + mdate + ", `downloads` = " + downloads + ", `name` = '" + name + "', `rating` = '" + rating + "', `votes` = " + votes + ", `views` = " + views + ", `download` = '" + download + "', `size` = '" + size + "'";
+	query = "UPDATE `mapdl_maps_v2` SET `categories_id` = " + categorie + ", `date` = " + date + ", `mdate` = " + mdate + ", `downloads` = " + downloads + ", `name` = '" + name + "', `rating` = '" + rating + "', `votes` = " + votes + ", `views` = " + views + ", `download` = '" + download + "', `size` = '" + size + "' WHERE `id` = " + id;
 
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 }
