@@ -7,7 +7,7 @@
  * -----------------------------------------------------
  * 
  * 
- * Copyright (C) 2013 David <popoklopsi> Ordnung
+ * Copyright (C) 2013-2014 David <popoklopsi> Ordnung
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,8 +43,11 @@
 // Escaping
 #include <stringescape>
 
-// Maybe include the updater if exists
+// Cookie for config
 #undef REQUIRE_PLUGIN
+#include <clientprefs>
+
+// Maybe include the updater if exists
 #include <updater>
 
 
@@ -56,11 +59,13 @@
 
 
 
+// Table Version
+#define TABLE_VERSION "2"
 
 
 // URLs
 #define UPDATE_URL_PLUGIN "http://popoklopsi.de/mapdl/update.txt"
-#define UPDATE_URL_DB "http://popoklopsi.de/mapdl/gamebanana.sq3"
+#define UPDATE_URL_DB "http://popoklopsi.de/mapdl/v2/gamebanana.sq3"
 #define URL_MOTD "http://popoklopsi.de/mapdl/motd.php"
 
 
@@ -72,8 +77,17 @@
 #define MAPFILE 4
 #define MAPID 5
 #define MAPSIZE 6
-#define GAME 7
-#define CUSTOM 8
+#define DATE 7
+#define MDATE 8
+#define DOWNLOADS 9
+#define RATING 10
+#define VOTES 11
+#define VIEWS 12
+#define GAME 13
+#define CUSTOM 14
+#define TITLE 15
+#define CURRENT_MENU 16
+#define NUMBER_ELEMENTS 17
 
 
 
@@ -95,17 +109,17 @@ enum Modus
 // List of download information
 enum DownloadInfo
 {
-	DL_CLIENT,									// Client of current download
-	DL_FINISH,									// Finished files
-	Float:DL_CURRENT,							// Current Bytes
-	Float:DL_TOTAL,								// Total bytes
-	Modus:DL_MODE,								// Current dl Modes
-	String:DL_ID[32],							// Map ID
-	String:DL_NAME[128],						// Map Name
-	String:DL_FILE[128],						// Download Link
-	String:DL_SAVE[PLATFORM_MAX_PATH + 1],		// Path to save to
-	Handle:DL_FILES,							// Array to store files
-	Handle:DL_FTPFILES							// Array to store ftp files
+	DL_CLIENT,                                  // Client of current download
+	DL_FINISH,                                  // Finished files
+	Float:DL_CURRENT,                           // Current Bytes
+	Float:DL_TOTAL,                             // Total bytes
+	Modus:DL_MODE,                              // Current dl Modes
+	String:DL_ID[32],                           // Map ID
+	String:DL_NAME[128],                        // Map Name
+	String:DL_FILE[128],                        // Download Link
+	String:DL_SAVE[PLATFORM_MAX_PATH + 1],      // Path to save to
+	Handle:DL_FILES,                            // Array to store files
+	Handle:DL_FTPFILES                          // Array to store ftp files
 }
 
 
@@ -119,9 +133,10 @@ new g_Downloads[20][DownloadInfo];
 
 
 // Global strings
-new String:g_sVersion[] = "2.1.2";
+new String:g_sVersion[] = "2.2.0";
 new String:g_sModes[][] = {"Downloading", "Uploading", "Compressing"};
 new String:g_sGameSearch[64];
+new String:g_sClientConfig[MAXPLAYERS + 1][256];
 new String:g_sPluginPath[PLATFORM_MAX_PATH + 1];
 new String:g_sCommand[32];
 new String:g_sCommandCustom[32];
@@ -134,12 +149,13 @@ new String:g_sFTPUser[64];
 new String:g_sFTPPW[128];
 new String:g_sFTPPath[PLATFORM_MAX_PATH + 1];
 new String:g_sGame[12];
-new String:g_sSearch[MAXPLAYERS + 1][9][64];
+new String:g_sSearch[MAXPLAYERS + 1][NUMBER_ELEMENTS][64];
 new String:g_sLogin[MAXPLAYERS + 1][2][64];
 new String:g_sWhitelistMaps[1024];
 new String:g_sBlacklistMaps[1024];
 new String:g_sWhitelistCategories[1024];
 new String:g_sBlacklistCategories[1024];
+new String:g_sLogPath[PLATFORM_MAX_PATH + 1];
 
 
 // Global bools
@@ -155,14 +171,18 @@ new bool:g_bDBLoaded;
 new bool:g_bSearch;
 new bool:g_bDownloadList;
 new bool:g_bUseCustom;
+new bool:g_bClientprefsAvailable;
 
 
 // Global ints
 new g_iFTPPort;
 new g_iTotalDownloads;
 new g_iCurrentDownload;
+new g_iShowColor[4];
 new g_iLast[MAXPLAYERS + 1][2];
 new g_iCurrentNotice;
+new g_iDatabaseRetries;
+new g_iDatabaseTries;
 
 
 // Global handles
@@ -174,6 +194,7 @@ new Handle:g_hUpdateDB;
 new Handle:g_hTag;
 new Handle:g_hFlag;
 new Handle:g_hShow;
+new Handle:g_hShowColor;
 new Handle:g_hMapCycle;
 new Handle:g_hNotice;
 new Handle:g_hFTP;
@@ -187,6 +208,8 @@ new Handle:g_hHudSync;
 new Handle:g_hDownloadList;
 new Handle:g_hFTPLogin;
 new Handle:g_hFTPCommand;
+new Handle:g_hDatabaseRetries;
+new Handle:g_hConfigCookie;
 
 
 
@@ -194,80 +217,114 @@ new Handle:g_hFTPCommand;
 // Database querys
 // Check if database is valid
 new String:g_sDatabaseCheck[] = "SELECT \
-						`mapdl_categories`.`id`, `mapdl_categories`.`name`, `mapdl_categories`.`game`, \
-						\
-						`mapdl_maps`.`categories_id`, `mapdl_maps`.`mapname`, `mapdl_maps`.`mapID`, `mapdl_maps`.`file`, `mapdl_maps`.`size`, `mapdl_info`.`table_version` \
-						\
-						FROM `mapdl_categories`, `mapdl_maps`, `mapdl_info` LIMIT 1";
+                        `mapdl_categories_v2`.`id`, `mapdl_categories_v2`.`name`, `mapdl_categories_v2`.`game`, \
+                        `mapdl_maps_v2`.`id`,  `mapdl_maps_v2`.`categories_id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, \
+                        `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+                        `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_info_v2`.`table_version` \
+                        FROM `mapdl_categories_v2`, `mapdl_maps_v2`, `mapdl_info_v2` LIMIT 1";
+
+
+// Check if database is current version
+new String:g_sDatabaseCheckVersion[] = "SELECT `table_version` FROM `mapdl_info_v2`";
 
 
 // Get all categories
 new String:g_sAllCategories[] = "SELECT \
-						`mapdl_categories`.`id`, `mapdl_categories`.`name`, COUNT(`mapdl_maps`.`mapname`) FROM `mapdl_categories`, `mapdl_maps` \
-						WHERE `mapdl_categories`.`game` IN %s AND `mapdl_categories`.`id`=`mapdl_maps`.`categories_id` %s%s%s%s GROUP BY `mapdl_categories`.`name`";
+                        `mapdl_categories_v2`.`id`, `mapdl_categories_v2`.`name`, COUNT(`mapdl_maps_v2`.`name`) FROM `mapdl_categories_v2`, `mapdl_maps_v2` \
+                        WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_categories_v2`.`id`=`mapdl_maps_v2`.`categories_id` %s%s%s%s GROUP BY `mapdl_categories_v2`.`name`";
 
 
-// Search for a categorie
+// Search for a category by name
 new String:g_sSearchCategories[] = "SELECT \
-						`mapdl_categories`.`id`, `mapdl_categories`.`name`, COUNT(`mapdl_maps`.`mapname`) FROM `mapdl_categories`, `mapdl_maps` \
-						WHERE `mapdl_categories`.`game` IN %s AND `mapdl_categories`.`id`=`mapdl_maps`.`categories_id` AND `mapdl_maps`.`mapname` LIKE '%s' ESCAPE '?' %s%s%s%s GROUP BY `mapdl_categories`.`name`";
+                        `mapdl_categories_v2`.`id`, `mapdl_categories_v2`.`name`, COUNT(`mapdl_maps_v2`.`name`) FROM `mapdl_categories_v2`, `mapdl_maps_v2` \
+                        WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_categories_v2`.`id`=`mapdl_maps_v2`.`categories_id` AND `mapdl_maps_v2`.`name` \
+                        LIKE '%s' ESCAPE '?' %s%s%s%s GROUP BY `mapdl_categories_v2`.`name`";
 
-						
+
 // Get all maps
-new String:g_sAllMaps[] = "SELECT `mapdl_maps`.`mapname`, `mapdl_maps`.`mapID`, `mapdl_maps`.`file`, `mapdl_maps`.`size`, `mapdl_categories`.`game` FROM `mapdl_maps`, `mapdl_categories` \
-						WHERE `mapdl_maps`.`categories_id`=%i AND `mapdl_maps`.`categories_id` = `mapdl_categories`.`id` %s%s GROUP BY `mapdl_maps`.`mapname`";
+new String:g_sAllMaps[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+                        `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
+                        WHERE `mapdl_maps_v2`.`categories_id`=%i AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s %s";
 
 
-// Search for a map
-new String:g_sSearchMaps[] = "SELECT `mapdl_maps`.`mapname`, `mapdl_maps`.`mapID`, `mapdl_maps`.`file`, `mapdl_maps`.`size`, `mapdl_categories`.`game` FROM `mapdl_maps`, `mapdl_categories` \
-						WHERE `mapdl_maps`.`mapname` LIKE '%s' ESCAPE '?' AND `mapdl_maps`.`categories_id`=%i AND `mapdl_maps`.`categories_id` = `mapdl_categories`.`id` %s%s GROUP BY `mapdl_maps`.`mapname`";
+// Search for a map by name
+new String:g_sSearchMapsByName[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+                        `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
+                        WHERE `mapdl_maps_v2`.`name` LIKE '%s' ESCAPE '?' AND `mapdl_maps_v2`.`categories_id`=%i AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s %s";
+
+
+// Search for a map by date
+new String:g_sSearchMapsByDate[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+                        `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
+                        WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY `mapdl_maps_v2`.`date` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC LIMIT 100";
+
+
+// Search for a map by last modification date
+new String:g_sSearchMapsByMDate[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+                        `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
+                        WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`date` != `mapdl_maps_v2`.`mdate` AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY `mapdl_maps_v2`.`mdate`DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC  LIMIT 100";
+
+
+// Search for a map by downloads
+new String:g_sSearchMapsByDownloads[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+                        `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
+                        WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY `mapdl_maps_v2`.`downloads` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC LIMIT 100";
+
+
+// Search for a map by views
+new String:g_sSearchMapsByViews[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+                        `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
+                        WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY `mapdl_maps_v2`.`views` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC LIMIT 100";
+
+
+// Search for a map by rating
+new String:g_sSearchMapsByRating[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+                        `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
+                        WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY cast(`mapdl_maps_v2`.`rating` as float) DESC, `mapdl_maps_v2`.`votes` DESC LIMIT 100";
 
 
 
-// customs
+// Customs
 
 
 // Create Customs
 new String:g_sCreateCustom[] = "CREATE TABLE IF NOT EXISTS `mapdl_custom` \
-						(`id` integer PRIMARY KEY, `name` varchar(255) NOT NULL, `url` varchar(255) NOT NULL, UNIQUE (name, url))";
+                        (`id` integer PRIMARY KEY, `name` varchar(255) NOT NULL, `url` varchar(255) NOT NULL, UNIQUE (name, url))";
 
 
 // Create Customs maps
 new String:g_sCreateCustomMaps[] = "CREATE TABLE IF NOT EXISTS `mapdl_custom_maps` \
-						(`custom_id` tinyint NOT NULL, `file` varchar(128) NOT NULL, UNIQUE (custom_id, file))";
+                        (`custom_id` tinyint NOT NULL, `file` varchar(128) NOT NULL, UNIQUE (custom_id, file))";
 
 
 // Insert name and urls
 new String:g_InsertCustom[] = "INSERT INTO `mapdl_custom` \
-						(`id`, `name`, `url`) VALUES (NULL, '%s', '%s')";
+                        (`id`, `name`, `url`) VALUES (NULL, '%s', '%s')";
 
 
 // Insert Maps
 new String:g_InsertCustomMaps[] = "INSERT INTO `mapdl_custom_maps` (`custom_id`, `file`) \
-						SELECT `mapdl_custom`.`id`, '%s' FROM `mapdl_custom` WHERE `mapdl_custom`.`name` = '%s'";
+                        SELECT `mapdl_custom`.`id`, '%s' FROM `mapdl_custom` WHERE `mapdl_custom`.`name` = '%s'";
 
 
 // Get custom urls
 new String:g_sAllCustom[] = "SELECT `mapdl_custom`.`id`, `mapdl_custom`.`name`, COUNT(`mapdl_custom_maps`.`file`) FROM `mapdl_custom_maps`, `mapdl_custom` \
-						WHERE `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom`.`name`";
+                        WHERE `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom`.`name`";
 
 
 // Get custom urls search
 new String:g_sSearchCustom[] = "SELECT `mapdl_custom`.`id`, `mapdl_custom`.`name`, COUNT(`mapdl_custom_maps`.`file`) FROM `mapdl_custom_maps`, `mapdl_custom` \
-						WHERE `mapdl_custom_maps`.`file` LIKE '%s' ESCAPE '?' AND `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom`.`name`";
+                        WHERE `mapdl_custom_maps`.`file` LIKE '%s' ESCAPE '?' AND `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom`.`name`";
 
 
 // Get custom maps
 new String:g_sAllCustomMaps[] = "SELECT `mapdl_custom_maps`.`file`, `mapdl_custom`.`url` FROM `mapdl_custom_maps`, `mapdl_custom` \
-						WHERE `mapdl_custom_maps`.`custom_id`=%i AND `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom_maps`.`file`";
+                        WHERE `mapdl_custom_maps`.`custom_id`=%i AND `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom_maps`.`file`";
 
 
 // Get custom maps search
 new String:g_sSearchCustomMaps[] = "SELECT `mapdl_custom_maps`.`file`, `mapdl_custom`.`url` FROM `mapdl_custom_maps`, `mapdl_custom` \
-						WHERE `mapdl_custom_maps`.`file` LIKE '%s' ESCAPE '?' AND `mapdl_custom_maps`.`custom_id`=%i AND `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom_maps`.`file`";
-
-
-
+                        WHERE `mapdl_custom_maps`.`file` LIKE '%s' ESCAPE '?' AND `mapdl_custom_maps`.`custom_id`=%i AND `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom_maps`.`file`";
 
 
 
@@ -280,29 +337,6 @@ public Plugin:myinfo =
 	version = g_sVersion,
 	description = "Allows admins to download Maps ingame"
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -323,6 +357,7 @@ MAIN METHODS
 public OnPluginStart()
 {
 	// Load Translation
+	LoadTranslations("core.phrases");
 	LoadTranslations("mapdownload.phrases");
 	
 	
@@ -330,7 +365,11 @@ public OnPluginStart()
 	g_bFirst = true;
 	g_bDBLoaded = false;
 	g_bUseCustom = false;
+	g_bClientprefsAvailable = false;
 	g_iCurrentNotice = 0;
+	g_iDatabaseTries = 0;
+	g_iShowColor = {255, 255, 255, 255};
+
 
 	// Init. AutoExecConfig
 	AutoExecConfig_SetFile("plugin.mapdownload");
@@ -345,6 +384,8 @@ public OnPluginStart()
 	g_hTag = AutoExecConfig_CreateConVar("mapdownload_tag", "Map Download", "Chat prefix of Map Download");
 	g_hFlag = AutoExecConfig_CreateConVar("mapdownload_flag", "bg", "Flagstring to access menu (see configs/admin_levels.cfg)");
 	g_hShow = AutoExecConfig_CreateConVar("mapdownload_show", "0", "1 = All players see map downloading status, 0 = Only admins");
+	g_hShowColor = AutoExecConfig_CreateConVar("mapdownload_show_color", "255,255,255,255", "RGBA Color of the HUD Text if available", FCVAR_PROTECTED);
+	g_hDatabaseRetries = AutoExecConfig_CreateConVar("mapdownload_retries", "1", "Numbers of retries to load database");
 	g_hSearch = AutoExecConfig_CreateConVar("mapdownload_search", "1", "1 = Search searchmask within a string, 0 = Search excact mask");
 	g_hMapCycle = AutoExecConfig_CreateConVar("mapdownload_mapcycle", "1", "1 = Write downloaded map in mapcycle.txt, 0 = Off");
 	g_hNotice = AutoExecConfig_CreateConVar("mapdownload_notice", "1", "1 = Notice admins on server that Map Download runs, 0 = Off");
@@ -376,6 +417,9 @@ public OnPluginStart()
 // Config is executed
 public OnConfigsExecuted()
 {
+	decl String:showColor[32];
+	decl String:showColorExploded[4][12];
+
 	// Read all convars
 	// Ints
 	g_iFTPPort = GetConVarInt(g_hFTPPort);
@@ -391,9 +435,11 @@ public OnConfigsExecuted()
 	g_bUpdateDB = GetConVarBool(g_hUpdateDB);
 	g_bSearch = GetConVarBool(g_hSearch);
 	g_bDownloadList = GetConVarBool(g_hDownloadList);
+	g_iDatabaseRetries = GetConVarBool(g_hDatabaseRetries);
 
 
 	// Strings
+	GetConVarString(g_hShowColor, showColor, sizeof(showColor));
 	GetConVarString(g_hCommand, g_sCommand, sizeof(g_sCommand));
 	GetConVarString(g_hCommandCustom, g_sCommandCustom, sizeof(g_sCommandCustom));
 	GetConVarString(g_hFTPCommand, g_sFTPCommand, sizeof(g_sFTPCommand));
@@ -405,16 +451,72 @@ public OnConfigsExecuted()
 	GetConVarString(g_hFTPPath, g_sFTPPath, sizeof(g_sFTPPath));
 
 
-
 	// Hud Sync
 	g_hHudSync = CreateHudSynchronizer();
 
+	// Explode Colors
+	new found = ExplodeString(showColor, ",", showColorExploded, sizeof(showColorExploded), sizeof(showColorExploded[]));
+
+	if (found == 4)
+	{
+		new r = StringToInt(showColorExploded[0]);
+		new g = StringToInt(showColorExploded[1]);
+		new b = StringToInt(showColorExploded[2]);
+		new a = StringToInt(showColorExploded[3]);
+
+		if (r < 0 || r > 255)
+		{
+			LogError("Red Color have to be between 0 and 255 in '%s'!", showColor);
+		}
+		else
+		{
+			g_iShowColor[0] = r;
+		}
+
+		if (g < 0 || g > 255)
+		{
+			LogError("Green Color have to be between 0 and 255 in '%s'!", showColor);
+		}
+		else
+		{
+			g_iShowColor[1] = g;
+		}
+
+		if (b < 0 || b > 255)
+		{
+			LogError("Blue Color have to be between 0 and 255 in '%s'!", showColor);
+		}
+		else
+		{
+			g_iShowColor[2] = b;
+		}
+
+		if (a < 0 || a > 255)
+		{
+			LogError("Alpha have to be between 0 and 255 in '%s'!", showColor);
+		}
+		else
+		{
+			g_iShowColor[3] = a;
+		}
+	}
+	else
+	{
+		LogError("RGBA Colors '%s' have an invalid format!", showColor);
+	}
 
 
 	// Add Auto Updater if exit and want
 	if (LibraryExists("updater") && g_bUpdate)
 	{
 		Updater_AddPlugin(UPDATE_URL_PLUGIN);
+	}
+
+	// Check for clientprefs
+	if (LibraryExists("clientprefs"))
+	{
+		g_bClientprefsAvailable = true;
+		g_hConfigCookie = RegClientCookie("mapdl_config", "MapDownload Config Cookie", CookieAccess_Private);
 	}
 	
 
@@ -490,13 +592,174 @@ public OnAllPluginsLoaded()
 
 
 
+// Logging Stuff
+Log(String:fmt[], any:...)
+{
+	decl String:format[1024];
+	decl String:file[PLATFORM_MAX_PATH + 1];
+	decl String:currentDate[32];
+
+
+	VFormat(format, sizeof(format), fmt, 2);
+	FormatTime(currentDate, sizeof(currentDate), "%d-%m-%y");
+	Format(file, sizeof(file), "%s/mapdownload_(%s).log", g_sLogPath, currentDate);
+
+	LogToFile(file, "[ MAPDL ] %s", format);
+}
+
+
+
+
+
+// Client cookies are cached
+public OnClientCookiesCached(client)
+{
+	new config = GetClientConfigCookie(client);
+
+	switch(config)
+	{
+		case 0:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY LOWER(`mapdl_maps_v2`.`name`) ASC");
+		}
+		case 1:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY LOWER(`mapdl_maps_v2`.`name`) DESC");
+		}
+		case 2:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY `mapdl_maps_v2`.`date` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC");
+		}
+		case 3:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY `mapdl_maps_v2`.`date` ASC, cast(`mapdl_maps_v2`.`rating` as float) ASC");
+		}
+		case 4:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "AND `mapdl_maps_v2`.`date` != `mapdl_maps_v2`.`mdate` ORDER BY `mapdl_maps_v2`.`mdate` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC");
+		}
+		case 5:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "AND `mapdl_maps_v2`.`date` != `mapdl_maps_v2`.`mdate` ORDER BY `mapdl_maps_v2`.`mdate` ASC, cast(`mapdl_maps_v2`.`rating` as float) ASC");
+		}
+		case 6:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY `mapdl_maps_v2`.`downloads` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC");
+		}
+		case 7:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY `mapdl_maps_v2`.`downloads` ASC, cast(`mapdl_maps_v2`.`rating` as float) ASC");
+		}
+		case 8:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY `mapdl_maps_v2`.`views` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC");
+		}
+		case 9:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY `mapdl_maps_v2`.`views` ASC, cast(`mapdl_maps_v2`.`rating` as float) ASC");
+		}
+		case 10:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY cast(`mapdl_maps_v2`.`rating` as float) DESC, `mapdl_maps_v2`.`votes` DESC");
+		}
+		case 11:
+		{
+			strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "ORDER BY cast(`mapdl_maps_v2`.`rating` as float) ASC, `mapdl_maps_v2`.`votes` ASC");
+		}
+	}
+}
+
+
+
+
+
+// Set Title at search
+SetTitleWithCookie(client)
+{
+	new config = GetClientConfigCookie(client);
+
+	switch(config)
+	{
+		case 0:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "0");
+		}
+		case 1:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "0");
+		}
+		case 2:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "1");
+		}
+		case 3:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "1");
+		}
+		case 4:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "2");
+		}
+		case 5:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "2");
+		}
+		case 6:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "3");
+		}
+		case 7:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "3");
+		}
+		case 8:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "4");
+		}
+		case 9:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "4");
+		}
+		case 10:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "5");
+		}
+		case 11:
+		{
+			strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "5");
+		}
+	}
+}
+
+
+
+
+
+// Gets the Client cookie
+GetClientConfigCookie(client)
+{
+	// Only with clientprefs
+	if (g_bClientprefsAvailable && IsClientValid(client) && AreClientCookiesCached(client))
+	{
+		decl String:buffer[8];
+
+		GetClientCookie(client, g_hConfigCookie, buffer, sizeof(buffer));
+
+		return StringToInt(buffer);
+	}
+
+	return -1;
+}
+
+
 
 
 // Prepare folders and connect to database
-public PreparePlugin()
+PreparePlugin()
 {
 	// Build plugin paths
 	BuildPath(Path_SM, g_sPluginPath, sizeof(g_sPluginPath), "data/mapdownload");
+	BuildPath(Path_SM, g_sLogPath, sizeof(g_sLogPath), "data/mapdownload/logs");
 
 
 	// Check if paths exist
@@ -504,6 +767,11 @@ public PreparePlugin()
 	if (!DirExists(g_sPluginPath))
 	{
 		CreateDirectory(g_sPluginPath, 511);
+	}
+
+	if (!DirExists(g_sLogPath))
+	{
+		CreateDirectory(g_sLogPath, 511);
 	}
 
 	// Temp dir
@@ -517,16 +785,9 @@ public PreparePlugin()
 	CreateDirectory(g_sPluginPath, 511);
 
 
-
-
-
-
 	// Format tags
 	Format(g_sTagChat, sizeof(g_sTagChat), "{lightgreen}[{green} %s {lightgreen}]", g_sTag);
 	Format(g_sTag, sizeof(g_sTag), "[ %s ]", g_sTag);
-
-
-
 
 
 	// Get the game
@@ -561,13 +822,8 @@ public PreparePlugin()
 		SetFailState("%s isn't supported for Map Download!", g_sGame);
 	}
 
-
-
-
 	// Format Search
 	Format(g_sGameSearch, sizeof(g_sGameSearch), "('%s')", g_sGame);
-
-
 
 
 	// If no DB update -> Load Database
@@ -594,7 +850,7 @@ public PreparePlugin()
 
 
 // Prepare folders and connect to database
-public ParseDownloadList()
+ParseDownloadList()
 {
 	// Parse Downloadlist
 	if (g_bDownloadList)
@@ -607,7 +863,6 @@ public ParseDownloadList()
 
 		// Path to downloadlist
 		BuildPath(Path_SM, dllistFile, sizeof(dllistFile), "data/mapdownload/downloadlist.txt");
-
 
 
 		// Open file
@@ -666,7 +921,6 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
 		decl String:sqlError[256];
 
 
-
 		// Connect to database
 		new Handle:dbHandle = CreateKeyValues("Databases");
 		
@@ -683,8 +937,6 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
 		CloseHandle(dbHandle);
 
 
-
-
 		// Check valid connection
 		if (g_hDatabase == INVALID_HANDLE)
 		{
@@ -694,89 +946,88 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
 		}
 		else
 		{
-			// Lock database
-			SQL_LockDatabase(g_hDatabase);
+			// Create Transaction
+			new Handle:txn = SQL_CreateTransaction();
 
-			
-			// Get result
-			new Handle:result = SQL_Query(g_hDatabase, g_sDatabaseCheck);
+			SQL_AddQuery(txn, g_sDatabaseCheck, 1);
+			SQL_AddQuery(txn, g_sDatabaseCheckVersion, 2);
+			SQL_AddQuery(txn, g_sCreateCustom, 3);
+			SQL_AddQuery(txn, g_sCreateCustomMaps, 4);
 
-			// Check valid database
-			if (result == INVALID_HANDLE)
-			{
-				// Something is old
-				SQL_GetError(g_hDatabase, sqlError, sizeof(sqlError));
-				
-				LogError("Map Download plugin or database is outdated. Please update! Error: %s", sqlError);
-			}
-			else
-			{
-				if (!SQL_FetchRow(result))
-				{
-					LogError("Map Download database seems to be empty!");
-				}
-
-				// Close result
-				CloseHandle(result);
-			}
-
-
-
-			// Create custom tables
-			result = SQL_Query(g_hDatabase, g_sCreateCustom);
-
-			// Check valid
-			if (result == INVALID_HANDLE)
-			{
-				// Get the error
-				SQL_GetError(g_hDatabase, sqlError, sizeof(sqlError));
-				
-				LogError("Couldn't create custom table! Error: %s", sqlError);
-			}
-
-
-			result = SQL_Query(g_hDatabase, g_sCreateCustomMaps);
-
-			// Check valid
-			if (result == INVALID_HANDLE)
-			{
-				// Get the error
-				SQL_GetError(g_hDatabase, sqlError, sizeof(sqlError));
-				
-				LogError("Couldn't create custom maps table! Error: %s", sqlError);
-			}
-
-
-			// Unlock
-			SQL_UnlockDatabase(g_hDatabase);
-
-
-
-			// Now we can load white,black and customlist
-			ParseLists();
-
-
-			// Database loaded
-			g_bDBLoaded = true;
+			SQL_ExecuteTransaction(g_hDatabase, txn, OnDBStartedUp, OnDBStartUpFailed);
 		}
 	}
 }
 
 
 
+// Everything is started up
+public OnDBStartedUp(Handle:db, any:data, numQueries, Handle:results[], any:queryData[])
+{
+	for (new i=0; i < numQueries; i++)
+	{
+		if (queryData[i] == 1)
+		{
+			// Check valid database
+			if (!SQL_FetchRow(results[i]))
+			{
+				LogError("Map Download database seems to be empty!");
+			}
+		}
+
+		if (queryData[i] == 2)
+		{
+			decl String:version[16];
+
+			// Check valid database version
+			if (!SQL_FetchRow(results[i]))
+			{
+				LogError("Your Map Download database seems to be outdated!");
+			}
+
+			SQL_FetchString(results[i], 0, version, sizeof(version));
+
+			if (!StrEqual(version, TABLE_VERSION, false))
+			{
+				LogError("Your Map Download database seems to be outdated: Found '%s', expected '%s'!", version, TABLE_VERSION);
+			}
+		}
+	}
+
+	// Now we can load white,black and customlist
+	ParseLists();
+
+	// Database loaded
+	g_bDBLoaded = true;
+}
+
+
+
+// start up failed
+public OnDBStartUpFailed(Handle:db, any:data, numQueries, const String:error[], failIndex, any:queryData[])
+{
+	LogError("Map Download couldn't prepare the Database. Error: '%s'", error);
+
+	if (g_iDatabaseRetries > g_iDatabaseTries)
+	{
+		g_iDatabaseTries++;
+
+		// Retrie
+		PrepareDB(true, "", 0.0, 0.0, 0.0, 0.0);
+	}
+}
+
 
 
 // Parse the white,black and customlist
-public ParseLists()
+ParseLists()
 {
 	decl String:listPath[PLATFORM_MAX_PATH + 1];
 
 	new Handle:listHandle = CreateKeyValues("MapDownloadLists");
 
-
 	// Path
 	BuildPath(Path_SM, listPath, sizeof(listPath), "configs/mapdownload_lists.cfg");
-
 
 
 	// List file exists?
@@ -816,18 +1067,17 @@ public ParseLists()
 				EscapeString(searchBuffer, '_', '?', searchFinal, sizeof(searchFinal));
 
 
-
 				// whitelist?
 				if (StrEqual(section, "whitelist", false))
 				{
-					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_categories`.`name` LIKE '%s' ESCAPE '?' ", searchFinal);
+					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_categories_v2`.`name` LIKE '%s' ESCAPE '?' ", searchFinal);
 					StrCat(g_sWhitelistCategories, sizeof(g_sWhitelistCategories), searchFinal);
 				}
 
 				// blacklist
 				else if (StrEqual(section, "blacklist", false))
 				{
-					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_categories`.`name` NOT LIKE '%s' ESCAPE '?' ", searchFinal);
+					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_categories_v2`.`name` NOT LIKE '%s' ESCAPE '?' ", searchFinal);
 					StrCat(g_sBlacklistCategories, sizeof(g_sBlacklistCategories), searchFinal);
 				}
 			}
@@ -869,14 +1119,14 @@ public ParseLists()
 				// whitelist?
 				if (StrEqual(section, "whitelist", false))
 				{
-					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_maps`.`mapname` LIKE '%s' ESCAPE '?' ", searchFinal);
+					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_maps_v2`.`name` LIKE '%s' ESCAPE '?' ", searchFinal);
 					StrCat(g_sWhitelistMaps, sizeof(g_sWhitelistMaps), searchFinal);
 				}
 
 				// blacklist
 				else if (StrEqual(section, "blacklist", false))
 				{
-					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_maps`.`mapname` NOT LIKE '%s' ESCAPE '?' ", searchFinal);
+					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_maps_v2`.`name` NOT LIKE '%s' ESCAPE '?' ", searchFinal);
 					StrCat(g_sBlacklistMaps, sizeof(g_sBlacklistMaps), searchFinal);
 				}
 			}
@@ -892,6 +1142,9 @@ public ParseLists()
 	// Goto custom urls
 	if (KvJumpToKey(listHandle, "customurls") &&  KvGotoFirstSubKey(listHandle, false))
 	{
+		new Handle:sectionArray = CreateArray(128);
+		new Handle:txn = SQL_CreateTransaction();
+
 		// Loop through all items
 		do
 		{
@@ -907,7 +1160,7 @@ public ParseLists()
 
 
 			// Any data?
-			if (!StrEqual(search, "") && !StrEqual(section, ""))
+			if (!StrEqual(search, "") && !StrEqual(section, "") )
 			{
 				// Yes we use it :)
 				g_bUseCustom = true;
@@ -919,47 +1172,68 @@ public ParseLists()
 					search[strlen(search) - 1] = 0;
 				}
 
-
 				// Escape strings
 				SQL_EscapeString(g_hDatabase, section, sectionBuffer, sizeof(sectionBuffer));
 
 
-
-				// Lock database
-				SQL_LockDatabase(g_hDatabase);
-
-
 				// Get result of insert
 				Format(query, sizeof(query), g_InsertCustom, sectionBuffer, search);
-				SQL_Query(g_hDatabase, query);
+				SQL_AddQuery(txn, query);
 
-
-				// UnLock database
-				SQL_UnlockDatabase(g_hDatabase);
-
-
-
-
-				// We need a handle to give with
-				new Handle:nameArray = CreateArray(128, 0);
 
 				// Push Name in
-				PushArrayString(nameArray, sectionBuffer);
-				PushArrayString(nameArray, "");
-
-
-				// Now search for maps
-				System2_GetPage(OnGetPage, search, "", "Ingame Map Download Searcher", nameArray);
+				PushArrayString(sectionArray, sectionBuffer);
+				PushArrayString(sectionArray, search);
 			}
 		} 
 		while (KvGotoNextKey(listHandle, false));
+
+		SQL_ExecuteTransaction(g_hDatabase, txn, OnAddedCustomUrls, OnAddedCustomUrlsFailed, sectionArray);
 	}
+
+	CloseHandle(listHandle);
 }
 
 
 
+// All Custom Urls added
+public OnAddedCustomUrls(Handle:db, any:data, numQueries, Handle:results[], any:queryData[])
+{
+	decl String:sectionBuffer[128];
+	decl String:search[128];
 
-// Retrieve page of downloads
+	for (new i=0; i < numQueries; i++)
+	{
+		GetArrayString(data, i, sectionBuffer, sizeof(sectionBuffer));
+		GetArrayString(data, i+1, search, sizeof(search));
+
+		// We need a handle to give with
+		new Handle:nameArray = CreateArray(128, 0);
+
+		// Push Name in
+		PushArrayString(nameArray, sectionBuffer);
+		PushArrayString(nameArray, "");
+
+
+		// Now search for maps
+		System2_GetPage(OnGetPage, search, "", "Ingame Map Download Searcher", nameArray);
+	}
+
+	CloseHandle(data);
+}
+
+
+
+// Custom urls couldn't be add
+public OnAddedCustomUrlsFailed(Handle:db, any:data, numQueries, const String:error[], failIndex, any:queryData[])
+{
+	CloseHandle(data);
+
+	LogError("Map Download couldn't add custom urls. Error: '%s'", error);
+}
+
+
+
 public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
 {
 	decl String:name[128];
@@ -981,7 +1255,6 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
 
 		// Empty it
 		SetArrayString(namer, 1, "");
-
 
 
 		// Get Name
@@ -1049,7 +1322,7 @@ public SQL_CallBack(Handle:owner, Handle:hndl, const String:error[], any:data)
 
 // Deletes complete path
 // Recursive method
-public DeletePath(String:path[])
+DeletePath(String:path[])
 {
 	// Name buffer
 	decl String:buffer[128];
@@ -1100,10 +1373,8 @@ public DeletePath(String:path[])
 
 
 
-
-
 // Is player valid?
-public bool:IsClientValid(client)
+bool:IsClientValid(client)
 {
 	if (client > 0 && client <= MaxClients)
 	{
@@ -1117,25 +1388,20 @@ public bool:IsClientValid(client)
 		}
 	}
 
-
 	// He isn't
 	return false;
-} 
-
-
+}
 
 
 
 // Is player admin?
-public bool:IsClientAdmin(client)
+bool:IsClientAdmin(client)
 {
 	new need = ReadFlagString(g_sFlag);
 	new clientFlags = GetUserFlagBits(client);
 
 	return (need <= 0 || (clientFlags & need) || (clientFlags & ADMFLAG_ROOT));
-} 
-
-
+}
 
 
 
@@ -1145,15 +1411,13 @@ public OnClientConnected(client)
 	// Reset client
 	strcopy(g_sLogin[client][0], sizeof(g_sLogin[][]), "");
 	strcopy(g_sLogin[client][1], sizeof(g_sLogin[][]), "");
+	strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "");
 }
 
 
 
-
-
-
 // Sends the current status
-public SendCurrentStatus()
+SendCurrentStatus()
 {
 	// Not finished	
 	decl String:message[256];
@@ -1272,7 +1536,7 @@ public SendCurrentStatus()
 	// Prepare Hud text
 	if (g_hHudSync != INVALID_HANDLE)
 	{
-		SetHudTextParams(-1.0, 0.75, 7.0, 0, 200, 0, 255, 0, 0.0, 0.0, 0.0);
+		SetHudTextParams(-1.0, 0.75, 7.0, g_iShowColor[0], g_iShowColor[1], g_iShowColor[2], g_iShowColor[3], 0, 0.0, 0.0, 0.0);
 	}
 
 
@@ -1317,8 +1581,6 @@ public SendCurrentStatus()
 		}
 	}
 }
-
-
 
 
 
@@ -1387,10 +1649,8 @@ public Action:NoticeTimer(Handle:timer, any:data)
 
 
 
-
-
 // Gets the filename of a path or the last dir
-public GetFileName(const String:path[], String:buffer[], size)
+GetFileName(const String:path[], String:buffer[], size)
 {
 	// Empty?
 	if (path[0] == '\0')
@@ -1420,36 +1680,8 @@ public GetFileName(const String:path[], String:buffer[], size)
 
 
 
-
-
-
-// Renames a map correctly
-public FixMapName(String:map[], size)
-{
-	// Len of string
-	new len = strlen(map);
-
-	// For every char in string
-	for (new i=0; i < len; i++)
-	{
-		// Upper to lower
-		if (IsCharUpper(map[i]))
-		{
-			map[i] = CharToLower(map[i]);
-		}
-	}
-
-	// No replace spaces
-	ReplaceString(map, size, " ", "");
-}
-
-
-
-
-
-
 // Checks if a strings end with specific string
-public bool:StrEndsWith(String:str[], String:str2[])
+bool:StrEndsWith(String:str[], String:str2[])
 {
 	// Len of strings
 	new len = strlen(str);
@@ -1487,7 +1719,6 @@ public bool:StrEndsWith(String:str[], String:str2[])
 
 
 
-
 // Save Login data
 public Action:OnSetLoginData(client, args)
 {
@@ -1517,25 +1748,6 @@ public Action:OnSetLoginData(client, args)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
 **************
 
@@ -1558,7 +1770,7 @@ public Action:OpenMenuCustom(client, args)
 
 
 		// Open Menu
-		OpenMenuGeneral(client, argument, "1");
+		PrepareMenu(client, argument, true);
 
 
 		// Finish
@@ -1581,8 +1793,8 @@ public Action:OpenMenu(client, args)
 	GetCmdArgString(argument, sizeof(argument));
 
 
-	// Open Menu
-	OpenMenuGeneral(client, argument, "0");
+	// Prepare Menu
+	PrepareMenu(client, argument, false);
 
 
 	// Finish
@@ -1593,20 +1805,13 @@ public Action:OpenMenu(client, args)
 
 
 
-// Open the menu
-public OpenMenuGeneral(client, String:argument[], String:isCustom[])
+// Prepare a new menu
+PrepareMenu(client, String:argument[], bool:isCustom)
 {
 	if (g_bDBLoaded)
 	{
 		if (IsClientValid(client))
 		{
-			if (g_bFTPLogin && (StrEqual(g_sLogin[client][0], "") || StrEqual(g_sLogin[client][1], "")))
-			{
-				// Remember
-				CPrintToChat(client, "%s %t", g_sTagChat, "Login", g_sFTPCommand);
-			}
-
-
 			// Max. 20 downloads
 			if (g_iTotalDownloads == 20)
 			{
@@ -1615,17 +1820,31 @@ public OpenMenuGeneral(client, String:argument[], String:isCustom[])
 				return;
 			}
 
+			if (g_bFTPLogin && (StrEqual(g_sLogin[client][0], "") || StrEqual(g_sLogin[client][1], "")))
+			{
+				// Remember
+				CPrintToChat(client, "%s %t", g_sTagChat, "Login", g_sFTPCommand);
+			}
+
+			// Check config of client
+			OnClientCookiesCached(client);
 
 			// Reset Data
-			strcopy(g_sSearch[client][CUSTOM], sizeof(g_sSearch[][]), isCustom);
+			strcopy(g_sSearch[client][CUSTOM], sizeof(g_sSearch[][]), isCustom ? "1" : "0");
 			strcopy(g_sSearch[client][SEARCH], sizeof(g_sSearch[][]), "");
 			strcopy(g_sSearch[client][SEARCHREAL], sizeof(g_sSearch[][]), "");
-			Format(g_sSearch[client][CAT_ID], sizeof(g_sSearch[][]), "");
+			strcopy(g_sSearch[client][CAT_ID], sizeof(g_sSearch[][]), "");
+			strcopy(g_sSearch[client][CURRENT_MENU], sizeof(g_sSearch[][]), "0");
 
 
 			// Do we want to search something?
 			decl String:argumentEscaped[256];
 			decl String:argumentEscapedBuffer[256];
+
+
+			// Mark menu position
+			g_iLast[client][0] = 0;
+			g_iLast[client][1] = 0;
 
 
 			// Is a argument given?
@@ -1641,20 +1860,21 @@ public OpenMenuGeneral(client, String:argument[], String:isCustom[])
 					Format(argumentEscaped, sizeof(argumentEscaped), "%%%s%%", argumentEscaped);
 				}
 
-
 				// Set Search string
 				strcopy(g_sSearch[client][SEARCH], sizeof(g_sSearch[][]), argumentEscaped);
 				strcopy(g_sSearch[client][SEARCHREAL], sizeof(g_sSearch[][]), argument);
+
+				// Send category list
+				OpenMenuWithAllMaps(client);
 			}
-
-
-
-			// Mark menu position
-			g_iLast[client][0] = 0;
-
-			
-			// Send Categorie list
-			SendCategories(client);
+			else if (isCustom)
+			{
+				OpenMenuWithAllMaps(client);
+			}
+			else
+			{
+				OpenSortChoiceMenu(client);
+			}
 		}
 	}
 	else
@@ -1667,15 +1887,244 @@ public OpenMenuGeneral(client, String:argument[], String:isCustom[])
 
 
 
+// Open the choice menu
+OpenSortChoiceMenu(client)
+{
+	decl String:display[64];
+
+	// Create menu
+	new Handle:menu = CreateMenu(OnSortChoose);
+
+	SetMenuExitButton(menu, true);
+	SetMenuExitBackButton(menu, false);
+	SetMenuTitle(menu, "%T", "ChooseSortType", client);
+
+	Format(display, sizeof(display), "%T", "AllMaps", client);
+	AddMenuItem(menu, "0", display);
+
+	Format(display, sizeof(display), "%T", "NewestMaps", client);
+	AddMenuItem(menu, "1", display);
+
+	Format(display, sizeof(display), "%T", "LatestModifiedMaps", client);
+	AddMenuItem(menu, "2", display);
+
+	Format(display, sizeof(display), "%T", "MostDownloadedMaps", client);
+	AddMenuItem(menu, "3", display);
+
+	Format(display, sizeof(display), "%T", "MostViewedMaps", client);
+	AddMenuItem(menu, "4", display);
+
+	if (g_bClientprefsAvailable)
+	{
+		Format(display, sizeof(display), "%T\n ", "BestRatedMaps", client);
+	}
+	else
+	{
+		Format(display, sizeof(display), "%T", "BestRatedMaps", client);
+	}
+
+	AddMenuItem(menu, "5", display);
+
+	if (g_bClientprefsAvailable)
+	{
+		Format(display, sizeof(display), "%T", "SortConfig", client);
+		AddMenuItem(menu, "6", display);
+	}
+
+	DisplayMenu(menu, client, 30);
+}
 
 
 
+
+
+// Client pressed a sort type
+public OnSortChoose(Handle:menu, MenuAction:action, param1, param2)
+{
+	if (action == MenuAction_Select && IsClientValid(param1))
+	{
+		decl String:choose[8];
+
+		// Get Choice
+		GetMenuItem(menu, param2, choose, sizeof(choose));
+
+		strcopy(g_sSearch[param1][CURRENT_MENU], sizeof(g_sSearch[][]), choose);
+
+		// Check what the client want to see
+		if (StrEqual(choose, "0"))
+		{
+			OpenMenuWithAllMaps(param1);
+		}
+		else if (StrEqual(choose, "6"))
+		{
+			// Send Maps with sort
+			OpenConfigMenu(param1);
+		}
+		else
+		{
+			// Send Maps with sort
+			SendMaps(param1, choose);
+		}
+	}
+	else if (action == MenuAction_End)
+	{
+		// Close handle on End
+		CloseHandle(menu);
+	}
+}
+
+
+
+
+// Open the config menu
+OpenConfigMenu(client)
+{
+	decl String:item[32];
+	new Handle:menu = CreateMenu(OnChooseSortType);
+
+
+	SetMenuTitle(menu, "%T", "ChooseSortType", client);
+	SetMenuExitBackButton(menu, true);
+
+	Format(item, sizeof(item), "%T", "Ascending", client);
+	AddMenuItem(Handle:menu, "1", item);
+
+	Format(item, sizeof(item), "%T", "Descending", client);
+	AddMenuItem(Handle:menu, "2", item);
+
+	DisplayMenu(menu, client, 30);
+}
+
+
+
+
+// Client pressed a sort type
+public OnChooseSortType(Handle:menu, MenuAction:action, param1, param2)
+{
+	if (action == MenuAction_Select && IsClientValid(param1))
+	{
+		decl String:choose[12];
+		decl String:display[32];
+		new Handle:newMenu = CreateMenu(OnChooseSort);
+		new clientCookie = GetClientConfigCookie(param1);
+
+		SetMenuExitBackButton(newMenu, true);
+
+		// Get Choice
+		GetMenuItem(menu, param2, choose, sizeof(choose));
+
+		if (StrEqual(choose, "1"))
+		{
+			SetMenuTitle(newMenu, "%T:", "Ascending", param1);
+
+			Format(display, sizeof(display), "%T", "SortByName", param1);
+			AddMenuItem(newMenu, "1", display, (clientCookie == 0) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByDate", param1);
+			AddMenuItem(newMenu, "3", display, (clientCookie == 3) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByMDate", param1);
+			AddMenuItem(newMenu, "5", display, (clientCookie == 5) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByDownloads", param1);
+			AddMenuItem(newMenu, "7", display, (clientCookie == 7) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByViews", param1);
+			AddMenuItem(newMenu, "9", display, (clientCookie == 9) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByRating", param1);
+			AddMenuItem(newMenu, "11", display, (clientCookie == 11) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+		}
+		else
+		{
+			SetMenuTitle(newMenu, "%T:", "Descending", param1);
+
+			Format(display, sizeof(display), "%T", "SortByName", param1);
+			AddMenuItem(newMenu, "0", display, (clientCookie == 1) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByDate", param1);
+			AddMenuItem(newMenu, "2", display, (clientCookie == 2) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByMDate", param1);
+			AddMenuItem(newMenu, "4", display, (clientCookie == 4) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByDownloads", param1);
+			AddMenuItem(newMenu, "6", display, (clientCookie == 6) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByViews", param1);
+			AddMenuItem(newMenu, "8", display, (clientCookie == 8) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+
+			Format(display, sizeof(display), "%T", "SortByRating", param1);
+			AddMenuItem(newMenu, "10", display, (clientCookie == 10) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+		}
+
+		DisplayMenu(newMenu, param1, 45);
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		// Pressed back
+		if (param2 == MenuCancel_ExitBack && IsClientValid(param1))
+		{
+			// Send new main menu
+			PrepareMenu(param1, "", false);
+		}
+	}
+	else if (action == MenuAction_End)
+	{
+		// Close handle on End
+		CloseHandle(menu);
+	}
+}
+
+
+
+
+// Client pressed a sort type
+public OnChooseSort(Handle:menu, MenuAction:action, param1, param2)
+{
+	if (action == MenuAction_Select && IsClientValid(param1))
+	{
+		decl String:choose[12];
+
+		// Get Choice
+		GetMenuItem(menu, param2, choose, sizeof(choose));
+
+		SetClientCookie(param1, g_hConfigCookie, choose);
+
+		OnClientCookiesCached(param1);
+
+		PrepareMenu(param1, "", false);
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		// Pressed back
+		if (param2 == MenuCancel_ExitBack && IsClientValid(param1))
+		{
+			// Send config menu
+			OpenConfigMenu(param1);
+		}
+	}
+	else if (action == MenuAction_End)
+	{
+		// Close handle on End
+		CloseHandle(menu);
+	}
+}
+
+
+
+
+// Open the menu with all Maps
+OpenMenuWithAllMaps(client)
+{
+	SendCategories(client);
+}
 
 
 
 
 // Send the categories to the client
-public SendCategories(client)
+SendCategories(client)
 {
 	decl String:query[4096];
 	
@@ -1712,7 +2161,7 @@ public SendCategories(client)
 
 
 	// Execute
-	SQL_TQuery(g_hDatabase, OnSendCategories, query, client);
+	SQL_TQuery(g_hDatabase, OnSendCategories, query, GetClientUserId(client));
 }
 
 
@@ -1720,8 +2169,10 @@ public SendCategories(client)
 
 
 // Categories to menu
-public OnSendCategories(Handle:owner, Handle:hndl, const String:error[], any:client)
+public OnSendCategories(Handle:owner, Handle:hndl, const String:error[], any:userid)
 {
+	new client = GetClientOfUserId(userid);
+
 	if (IsClientValid(client))
 	{
 		// Valid answer?
@@ -1731,22 +2182,23 @@ public OnSendCategories(Handle:owner, Handle:hndl, const String:error[], any:cli
 			if (SQL_FetchRow(hndl))
 			{
 				// Create menu
-				new Handle:menu = CreateMenu(OnCategorieChoose);
+				new Handle:menu = CreateMenu(OnCategoryChoose);
 				decl String:id[16];
 				decl String:name[128];
 				decl String:item[128 + 32];
 
 
+				SetMenuExitBackButton(menu, true);
+
 				// Title
 				if (StrEqual(g_sSearch[client][SEARCH], ""))
 				{
-					SetMenuTitle(menu, "%T", "ChooseTyp", client);
+					SetMenuTitle(menu, "%T", "ChooseCategory", client);
 				}
 				else
 				{
 					SetMenuTitle(menu, "%T", "Found", client, g_sSearch[client][SEARCHREAL]);
 				}
-
 
 
 				do
@@ -1776,7 +2228,7 @@ public OnSendCategories(Handle:owner, Handle:hndl, const String:error[], any:cli
 		else
 		{
 			// Log error
-			LogError("Couldn't execute categorie query. Error: %s", error);
+			LogError("Couldn't execute category query. Error: %s", error);
 		}
 	} 
 }
@@ -1784,14 +2236,12 @@ public OnSendCategories(Handle:owner, Handle:hndl, const String:error[], any:cli
 
 
 
-
-// Client pressed categorie
-public OnCategorieChoose(Handle:menu, MenuAction:action, param1, param2)
+// Client pressed category
+public OnCategoryChoose(Handle:menu, MenuAction:action, param1, param2)
 {
 	if (action == MenuAction_Select && IsClientValid(param1))
 	{
-		decl String:choose[10];
-
+		decl String:choose[12];
 
 		// Get Choice
 		GetMenuItem(menu, param2, choose, sizeof(choose));
@@ -1802,8 +2252,17 @@ public OnCategorieChoose(Handle:menu, MenuAction:action, param1, param2)
 		Format(g_sSearch[param1][CAT_ID], sizeof(g_sSearch[][]), choose);
 
 
-		// Send Maps of categorie
-		SendMaps(param1);
+		// Send Maps of category
+		SendMaps(param1, "0");
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		// Pressed back
+		if (param2 == MenuCancel_ExitBack && IsClientValid(param1))
+		{
+			// Send new main menu
+			PrepareMenu(param1, g_sSearch[param1][SEARCHREAL], StrEqual(g_sSearch[param1][CUSTOM], "1"));
+		}
 	}
 	else if (action == MenuAction_End)
 	{
@@ -1815,25 +2274,28 @@ public OnCategorieChoose(Handle:menu, MenuAction:action, param1, param2)
 
 
 
-
-
-
-
-
-
 // Send maps to client
-public SendMaps(client)
+SendMaps(client, String:sort[])
 {
 	if (IsClientValid(client))
 	{
-		decl String:query[2048 + 512];
+		decl String:query[4096];
 
 		// Reset Data
-		Format(g_sSearch[client][MAPNAME], sizeof(g_sSearch[][]), "");
-		Format(g_sSearch[client][MAPFILE], sizeof(g_sSearch[][]), "");
-		Format(g_sSearch[client][MAPID], sizeof(g_sSearch[][]), "");
-		Format(g_sSearch[client][MAPSIZE], sizeof(g_sSearch[][]), "");
-		Format(g_sSearch[client][GAME], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][MAPNAME], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][MAPFILE], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][MAPID], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][MAPSIZE], sizeof(g_sSearch[][]), "");
+
+		strcopy(g_sSearch[client][DATE], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][MDATE], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][DOWNLOADS], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][RATING], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][VOTES], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][VIEWS], sizeof(g_sSearch[][]), "");
+
+		strcopy(g_sSearch[client][GAME], sizeof(g_sSearch[][]), "");
+		strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "0");
 
 		
 		// No searching?
@@ -1841,7 +2303,43 @@ public SendMaps(client)
 		{
 			if (StrEqual(g_sSearch[client][CUSTOM], "0", false))
 			{
-				Format(query, sizeof(query), g_sAllMaps, StringToInt(g_sSearch[client][CAT_ID]), g_sWhitelistMaps, g_sBlacklistMaps);
+				// check what type of maps we want
+				new sortInt = StringToInt(sort);
+
+				switch(sortInt)
+				{
+					case 0:
+					{
+						SetTitleWithCookie(client);
+
+						Format(query, sizeof(query), g_sAllMaps, StringToInt(g_sSearch[client][CAT_ID]), g_sWhitelistMaps, g_sBlacklistMaps, g_sClientConfig[client]);
+					}
+					case 1:
+					{
+						strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "1");
+						Format(query, sizeof(query), g_sSearchMapsByDate, g_sGameSearch, g_sWhitelistCategories, g_sBlacklistCategories, g_sWhitelistMaps, g_sBlacklistMaps);
+					}
+					case 2:
+					{
+						strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "2");
+						Format(query, sizeof(query), g_sSearchMapsByMDate, g_sGameSearch, g_sWhitelistCategories, g_sBlacklistCategories, g_sWhitelistMaps, g_sBlacklistMaps);
+					}
+					case 3:
+					{
+						strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "3");
+						Format(query, sizeof(query), g_sSearchMapsByDownloads, g_sGameSearch, g_sWhitelistCategories, g_sBlacklistCategories, g_sWhitelistMaps, g_sBlacklistMaps);
+					}
+					case 4:
+					{
+						strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "4");
+						Format(query, sizeof(query), g_sSearchMapsByViews, g_sGameSearch, g_sWhitelistCategories, g_sBlacklistCategories, g_sWhitelistMaps, g_sBlacklistMaps);
+					}
+					case 5:
+					{
+						strcopy(g_sSearch[client][TITLE], sizeof(g_sSearch[][]), "5");
+						Format(query, sizeof(query), g_sSearchMapsByRating, g_sGameSearch, g_sWhitelistCategories, g_sBlacklistCategories, g_sWhitelistMaps, g_sBlacklistMaps);
+					}
+				}
 			}
 			else
 			{
@@ -1850,11 +2348,12 @@ public SendMaps(client)
 		}
 		else
 		{
-
 			// Search
-			if (StrEqual(g_sSearch[client][CUSTOM], "0", false))
+			if (StrEqual(g_sSearch[client][CUSTOM], "0"))
 			{
-				Format(query, sizeof(query), g_sSearchMaps, g_sSearch[client][SEARCH], StringToInt(g_sSearch[client][CAT_ID]), g_sWhitelistMaps, g_sBlacklistMaps);
+				SetTitleWithCookie(client);
+
+				Format(query, sizeof(query), g_sSearchMapsByName, g_sSearch[client][SEARCH], StringToInt(g_sSearch[client][CAT_ID]), g_sWhitelistMaps, g_sBlacklistMaps, g_sClientConfig[client]);
 			}
 			else
 			{
@@ -1862,19 +2361,19 @@ public SendMaps(client)
 			}
 		}
 
-
 		// Execute
-		SQL_TQuery(g_hDatabase, OnSendMaps, query, client);
+		SQL_TQuery(g_hDatabase, OnSendMaps, query, GetClientUserId(client));
 	}
 }
 
 
 
 
-
 // Maps to menu
-public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:client)
+public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
 {
+	new client = GetClientOfUserId(userid);
+
 	if (IsClientValid(client))
 	{
 		new bool:isCustom = StrEqual(g_sSearch[client][CUSTOM], "1", false);
@@ -1889,11 +2388,17 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:client)
 
 				decl String:game[16];
 				decl String:name[128];
+				decl String:date[64];
+				decl String:mdate[64];
+				decl String:downloads[12];
+				decl String:rating[12];
+				decl String:votes[12];
+				decl String:views[12];
 				decl String:file[128];
 				decl String:id[128];
 				decl String:size[32];
-				decl String:item[128 + 16];
-				decl String:item2[128 + 128 + 32 + 16 + 16];
+				decl String:item[sizeof(name) + sizeof(rating) + sizeof(downloads) + 32];
+				decl String:item2[128 + 128 + 128 + 32 + 16 + 64 + 64 + 12 + 12 + 12 + 12 + 12];
 
 				
 				// Title
@@ -1904,14 +2409,24 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:client)
 				do
 				{
 					// Fetch results
-					SQL_FetchString(hndl, 0, name, sizeof(name));
-					SQL_FetchString(hndl, 1, id, sizeof(id));
-
 					if (!isCustom)
 					{
-						SQL_FetchString(hndl, 2, file, sizeof(file));
-						SQL_FetchString(hndl, 3, size, sizeof(size));
-						SQL_FetchString(hndl, 4, game, sizeof(game));
+						SQL_FetchString(hndl, 0, id, sizeof(id));
+						SQL_FetchString(hndl, 1, date, sizeof(date));
+						SQL_FetchString(hndl, 2, mdate, sizeof(mdate));
+						SQL_FetchString(hndl, 3, downloads, sizeof(downloads));
+						SQL_FetchString(hndl, 4, rating, sizeof(rating));
+						SQL_FetchString(hndl, 5, votes, sizeof(votes));
+						SQL_FetchString(hndl, 6, views, sizeof(views));
+						SQL_FetchString(hndl, 7, name, sizeof(name));
+						SQL_FetchString(hndl, 8, file, sizeof(file));
+						SQL_FetchString(hndl, 9, size, sizeof(size));
+						SQL_FetchString(hndl, 10, game, sizeof(game));
+					}
+					else
+					{
+						SQL_FetchString(hndl, 0, name, sizeof(name));
+						SQL_FetchString(hndl, 1, id, sizeof(id));
 					}
 
 
@@ -1922,7 +2437,41 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:client)
 					// Add to menu
 					if (!isCustom)
 					{
-						Format(item, sizeof(item), "%s (%s)", name, size);
+						new sortTitle = StringToInt(g_sSearch[client][TITLE]);
+
+						switch(sortTitle)
+						{
+							case 0:
+							{
+								Format(item, sizeof(item), "%s (%s, %s %T)", name, rating, downloads, "DownloadsShort", client);
+							}
+							case 1:
+							{
+								decl String:dateStr[64];
+								FormatTime(dateStr, sizeof(dateStr), "%d.%m.%Y %H:%M", StringToInt(date));
+
+								Format(item, sizeof(item), "%s (%s)", name, dateStr);
+							}
+							case 2:
+							{
+								decl String:mdateStr[64];
+								FormatTime(mdateStr, sizeof(mdateStr), "%d.%m.%Y %H:%M", StringToInt(mdate));
+
+								Format(item, sizeof(item), "%s (%s)", name, mdateStr);
+							}
+							case 3:
+							{
+								Format(item, sizeof(item), "%s (%s %T)", name, downloads, "DownloadsTitle", client);
+							}
+							case 4:
+							{
+								Format(item, sizeof(item), "%s (%s %T)", name, views, "ViewsTitle", client);
+							}
+							case 5:
+							{
+								Format(item, sizeof(item), "%s (%s %T)", name, rating, "RatingTitle", client);
+							}
+						}
 					}
 					else
 					{
@@ -1934,7 +2483,7 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:client)
 					// Non of these data has currently a '<' in it
 					if (!isCustom)
 					{
-						Format(item2, sizeof(item2), "%s<%s<%s<%s<%s", file, id, name, size, game);
+						Format(item2, sizeof(item2), "%s<%s<%s<%s<%s<%s<%s<%s<%s<%s<%s", file, id, name, size, game, date, mdate, downloads, rating, votes, views);
 					}
 					else
 					{
@@ -1974,9 +2523,8 @@ public OnMapChoose(Handle:menu, MenuAction:action, param1, param2)
 {
 	if (action == MenuAction_Select && IsClientValid(param1))
 	{
-		decl String:choose[128 + 128 + 32 + 16 + 16];
-		decl String:splits[5][128];
-		decl String:item[64];
+		decl String:choose[128 + 128 + 128 + 32 + 16 + 64 + 64 + 12 + 12 + 12 + 12 + 12];
+		decl String:splits[11][128];
 
 		new bool:isCustom = StrEqual(g_sSearch[param1][CUSTOM], "1", false);
 
@@ -2000,6 +2548,15 @@ public OnMapChoose(Handle:menu, MenuAction:action, param1, param2)
 			Format(g_sSearch[param1][MAPNAME], sizeof(g_sSearch[][]), splits[2]);
 			Format(g_sSearch[param1][MAPSIZE], sizeof(g_sSearch[][]), splits[3]);
 			Format(g_sSearch[param1][GAME], sizeof(g_sSearch[][]), splits[4]);
+			Format(g_sSearch[param1][DATE], sizeof(g_sSearch[][]), splits[5]);
+			Format(g_sSearch[param1][MDATE], sizeof(g_sSearch[][]), splits[6]);
+			Format(g_sSearch[param1][DOWNLOADS], sizeof(g_sSearch[][]), splits[7]);
+			Format(g_sSearch[param1][RATING], sizeof(g_sSearch[][]), splits[8]);
+			Format(g_sSearch[param1][VOTES], sizeof(g_sSearch[][]), splits[9]);
+			Format(g_sSearch[param1][VIEWS], sizeof(g_sSearch[][]), splits[10]);
+
+			FormatTime(g_sSearch[param1][DATE], sizeof(g_sSearch[][]), "%d.%m.%Y %H:%M", StringToInt(g_sSearch[param1][DATE]));
+			FormatTime(g_sSearch[param1][MDATE], sizeof(g_sSearch[][]), "%d.%m.%Y %H:%M", StringToInt(g_sSearch[param1][MDATE]));
 		}
 		else
 		{
@@ -2007,45 +2564,23 @@ public OnMapChoose(Handle:menu, MenuAction:action, param1, param2)
 			Format(g_sSearch[param1][MAPFILE], sizeof(g_sSearch[][]), splits[1]);
 		}
 
-
-		// Create confirm menu
-		new Handle:menuNew = CreateMenu(OnDecide);
-
-		// Title and back button
-		if (!isCustom)
-		{
-			SetMenuTitle(menuNew, "%T (%s) ?", "Download", param1, splits[2], splits[3]);
-		}
-		else
-		{
-			SetMenuTitle(menuNew, "%T ?", "Download", param1, splits[0]);
-		}
-
-
-		SetMenuExitBackButton(menuNew, true);
-
-		// Items
-		Format(item, sizeof(item), "%T", "Yes", param1);
-		AddMenuItem(menuNew, "1", item);
-
-		if (!isCustom)
-		{
-			Format(item, sizeof(item), "%T", "Motd", param1);
-			AddMenuItem(menuNew, "2", item);
-		}
-
-
-		
-		// Display Menu
-		DisplayMenu(menuNew, param1, MENU_TIME_FOREVER);
+		// Create the last menu
+		createDecideMenu(param1, isCustom);
 	}
 	else if (action == MenuAction_Cancel)
 	{
 		// Pressed back
 		if (param2 == MenuCancel_ExitBack && IsClientValid(param1))
 		{
-			// Send Categorie Panel
-			SendCategories(param1);
+			if (StrEqual(g_sSearch[param1][CURRENT_MENU], "0"))
+			{
+				// Send category Panel
+				SendCategories(param1);
+			}
+			else
+			{
+				PrepareMenu(param1, "", false);
+			}
 		}
 	}
 	else if (action == MenuAction_End)
@@ -2057,6 +2592,43 @@ public OnMapChoose(Handle:menu, MenuAction:action, param1, param2)
 
 
 
+// Creates the decide Menu
+createDecideMenu(client, bool:isCustom)
+{
+	decl String:item[64];
+
+	// Create information menu
+	new Handle:menuNew = CreateMenu(OnDecide);
+
+	// Title and back button
+	SetMenuTitle(menuNew, "%T: %s\n \n%T\n%T\n%T\n%T\n%T\n%T\n ", "Map", client, g_sSearch[client][MAPNAME]
+                                                                ,"Downloads", client, g_sSearch[client][DOWNLOADS], "Rating", client, g_sSearch[client][RATING], g_sSearch[client][VOTES], "Views"
+                                                                ,client, g_sSearch[client][VIEWS], "Created", client, g_sSearch[client][DATE], "LatestModified", client, g_sSearch[client][MDATE], "Size"
+                                                                , client, g_sSearch[client][MAPSIZE]);
+
+	SetMenuPagination(menuNew, 3);
+
+	// Items
+	Format(item, sizeof(item), "%T", "Download", client);
+	AddMenuItem(menuNew, "1", item);
+
+
+	if (!isCustom)
+	{
+		Format(item, sizeof(item), "%T\n ", "Motd", client);
+		AddMenuItem(menuNew, "2", item);
+	}
+
+
+	Format(item, sizeof(item), "%T", "Back", client);
+	AddMenuItem(menuNew, "3", item);
+	
+
+	// Display Menu
+	DisplayMenu(menuNew, client, MENU_TIME_FOREVER);
+}
+
+
 
 
 // Player decided to download a map
@@ -2066,7 +2638,6 @@ public OnDecide(Handle:menu, MenuAction:action, param1, param2)
 	{
 		decl String:choose[16];
 		decl String:motdUrl[PLATFORM_MAX_PATH + 1];
-		decl String:item[64];
 
 		new choice;
 		new bool:isCustom = StrEqual(g_sSearch[param1][CUSTOM], "1", false);
@@ -2076,7 +2647,6 @@ public OnDecide(Handle:menu, MenuAction:action, param1, param2)
 		GetMenuItem(menu, param2, choose, sizeof(choose));
 
 		choice = StringToInt(choose);
-
 
 
 		// Choice is 2 -> Open motd
@@ -2095,24 +2665,8 @@ public OnDecide(Handle:menu, MenuAction:action, param1, param2)
 			}
 
 
-
 			// Resend Menu
-			new Handle:menuNew = CreateMenu(OnDecide);
-
-			// Title and back button
-			SetMenuTitle(menuNew, "%T", "Download", param1, g_sSearch[param1][MAPNAME], g_sSearch[param1][MAPSIZE]);
-			SetMenuExitBackButton(menuNew, true);
-
-			// Items
-			Format(item, sizeof(item), "%T", "Yes", param1);
-			AddMenuItem(menuNew, "1", item);
-
-			Format(item, sizeof(item), "%T", "Motd", param1);
-			AddMenuItem(menuNew, "2", item);
-
-			
-			// Display Menu
-			DisplayMenu(menuNew, param1, MENU_TIME_FOREVER);
+			createDecideMenu(param1, isCustom);
 		}
 		else if (choice == 1)
 		{
@@ -2128,14 +2682,10 @@ public OnDecide(Handle:menu, MenuAction:action, param1, param2)
 			// Start
 			StartDownloadingMap(param1, g_sSearch[param1][MAPID], g_sSearch[param1][MAPNAME], g_sSearch[param1][MAPFILE], isCustom);
 		}
-	}
-	else if (action == MenuAction_Cancel)
-	{
-		// Pressed back
-		if (param2 == MenuCancel_ExitBack && IsClientValid(param1))
+		else if (choice == 3)
 		{
 			// Send Maps Panel
-			SendMaps(param1);
+			SendMaps(param1, g_sSearch[param1][CURRENT_MENU]);
 		}
 	}
 	else if (action == MenuAction_End)
@@ -2144,27 +2694,6 @@ public OnDecide(Handle:menu, MenuAction:action, param1, param2)
 		CloseHandle(menu);
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2185,7 +2714,7 @@ Download
 
 
 // Now we can start
-public StartDownloadingMap(client, const String:id[], const String:map[], const String:link[], bool:isCustom)
+StartDownloadingMap(client, const String:id[], const String:map[], const String:link[], bool:isCustom)
 {
 	decl String:savePath[PLATFORM_MAX_PATH + 1];
 
@@ -2206,6 +2735,9 @@ public StartDownloadingMap(client, const String:id[], const String:map[], const 
 	CreateDirectory(savePath, 511);
 
 
+	// Log
+	Log("%L: Downloading Map %s(%s)", client, map, link);
+
 	// Format the download destination
 	if (!isCustom)
 	{
@@ -2221,7 +2753,6 @@ public StartDownloadingMap(client, const String:id[], const String:map[], const 
 
 
 
-
 	// Init download
 	g_Downloads[g_iTotalDownloads][DL_CLIENT] = client;
 	g_Downloads[g_iTotalDownloads][DL_FINISH] = 0;
@@ -2233,7 +2764,7 @@ public StartDownloadingMap(client, const String:id[], const String:map[], const 
 	if (!isCustom)
 	{
 		strcopy(g_Downloads[g_iTotalDownloads][DL_NAME], 128, map);
-		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 128, "http://files.gamebanana.com/maps/%s", link);
+		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 128, link);
 	}
 	else
 	{
@@ -2254,7 +2785,7 @@ public StartDownloadingMap(client, const String:id[], const String:map[], const 
 	}
 	
 	// Create new Array
-	g_Downloads[g_iTotalDownloads][DL_FILES] = CreateArray(PLATFORM_MAX_PATH+1);
+	g_Downloads[g_iTotalDownloads][DL_FILES] = CreateArray(PLATFORM_MAX_PATH + 1);
 
 
 
@@ -2265,15 +2796,12 @@ public StartDownloadingMap(client, const String:id[], const String:map[], const 
 	}
 	
 	// Create new Array
-	g_Downloads[g_iTotalDownloads][DL_FTPFILES] = CreateArray(PLATFORM_MAX_PATH+1);
-
-
+	g_Downloads[g_iTotalDownloads][DL_FTPFILES] = CreateArray(PLATFORM_MAX_PATH+  1);
 
 
 
 	// Mode
 	g_Downloads[g_iTotalDownloads][DL_MODE] = MODUS_DOWNLOAD;
-
 
 	
 	
@@ -2291,9 +2819,8 @@ public StartDownloadingMap(client, const String:id[], const String:map[], const 
 
 
 
-
 // Start download
-public DownloadMap()
+DownloadMap()
 {
 	// Update current download item
 	g_iCurrentDownload++;
@@ -2302,7 +2829,6 @@ public DownloadMap()
 	// Finally start download
 	System2_DownloadFile(OnDownloadUpdate, g_Downloads[g_iCurrentDownload][DL_FILE], g_Downloads[g_iCurrentDownload][DL_SAVE]);
 }
-
 
 
 
@@ -2317,6 +2843,8 @@ public OnDownloadUpdate(bool:finished, const String:error[], Float:dltotal, Floa
 		{
 			CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Failed", error);
 		}
+
+		Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE], error);
 
 		// Stop
 		StopDownload();
@@ -2352,7 +2880,7 @@ public OnDownloadUpdate(bool:finished, const String:error[], Float:dltotal, Floa
 
 
 // Stop download and go to next one
-public StopDownload()
+StopDownload()
 {
 	// Is another download in queue?
 	if (g_iCurrentDownload + 1 < g_iTotalDownloads)
@@ -2367,27 +2895,6 @@ public StopDownload()
 		g_iCurrentDownload = -1;
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2424,6 +2931,8 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 				CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Failed", output);
 			}
 
+			Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE], output);
+
 			// Stop
 			StopDownload();
 		}
@@ -2453,7 +2962,7 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 				// Do we need to add files to downloadlist?
 				if (g_bDownloadList)
 				{
-					// Yes ^^
+					// Yes...
 					decl String:dllistFile[PLATFORM_MAX_PATH + 1];
 					decl String:content[64];
 					decl String:readbuffer[64];
@@ -2466,7 +2975,6 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 
 					// Path to downloadlist
 					BuildPath(Path_SM, dllistFile, sizeof(dllistFile), "data/mapdownload/downloadlist.txt");
-
 
 
 					// Do we need to create the file first?
@@ -2579,13 +3087,14 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 					// Mark as finished
 					g_Downloads[g_iCurrentDownload][DL_MODE] = MODUS_FINISH;
 
-
 					// No uploading.
 					// We are finished :)
 					if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
 					{
 						CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Finish", g_Downloads[g_iCurrentDownload][DL_NAME]);
 					}
+
+					Log("%L: Downloading Map %s(%s) SUCCEEDED", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE]);
 
 					SendCurrentStatus();
 
@@ -2602,6 +3111,8 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 					CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Invalid");
 				}
 
+				Log("%L: Downloading Map %s(%s) FAILED: Found no .bsp file", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE]);
+
 				StopDownload();
 			}
 		}
@@ -2613,13 +3124,12 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 
 
 
-
 /*
 	Searching for folders and files
 	We can only copy known folders, because we can't know the path of a single file.
 	We only know where to put .bsp and .nav files
 */
-public SearchForFolders(String:path[], found)
+SearchForFolders(String:path[], found)
 {
 	decl String:newPath[PLATFORM_MAX_PATH + 1];
 	decl String:content[128];
@@ -2658,10 +3168,6 @@ public SearchForFolders(String:path[], found)
 					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
 
 
-					// Fix Map name
-					FixMapName(content, sizeof(content));
-
-
 					// Copy nav to maps folder
 					Format(content, sizeof(content), "maps/%s", content);
 
@@ -2675,19 +3181,18 @@ public SearchForFolders(String:path[], found)
 				// txt file?
 				else if (StrEndsWith(content, ".txt") && type == FileType_File)
 				{
-					// Add File to file list, for uploading
-					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
+					if (StrContains(content, "read", false) == -1 && StrContains(content, "change", false) == -1 && StrContains(content, "about", false) == -1 && StrContains(content, "contact", false) == -1 && StrContains(content, "credits", false) == -1 && StrContains(content, "install", false) == -1)
+					{
+						// Add File to file list, for uploading
+						PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
 
 
-					// Fix Map name
-					FixMapName(content, sizeof(content));
+						// Copy txt to maps folder
+						Format(content, sizeof(content), "maps/%s", content);
 
-
-					// Copy txt to maps folder
-					Format(content, sizeof(content), "maps/%s", content);
-
-					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
-					System2_CopyFile(CopyFinished, newPath, content);
+						PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
+						System2_CopyFile(CopyFinished, newPath, content);
+					}
 				}
 
 				// Map file
@@ -2700,16 +3205,11 @@ public SearchForFolders(String:path[], found)
 					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
 
 
-					// Fix Map name
-					FixMapName(content, sizeof(content));
-
-
 					// Copy map to maps folder
 					Format(buff, sizeof(buff), "maps/%s", content);
 
 					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], buff);
 					System2_CopyFile(CopyFinished, newPath, buff);
-
 
 
 					
@@ -2785,8 +3285,6 @@ public SearchForFolders(String:path[], found)
 						}
 					}
 
-					
-
 
 
 					// Notice new map, so admin know it's base name
@@ -2824,8 +3322,6 @@ public SearchForFolders(String:path[], found)
 
 
 
-
-
 /*
 **************
 
@@ -2838,7 +3334,7 @@ Copying
 
 
 // This allow us to copy a known folder to the gamedir
-public CopyToGameDir(const String:path[], const String:cur[])
+CopyToGameDir(const String:path[], const String:cur[])
 {
 	// Name buffer
 	decl String:buffer[128];
@@ -2892,11 +3388,10 @@ public CopyToGameDir(const String:path[], const String:cur[])
 				}
 			}
 		}
+
+		// Close Handle
+		CloseHandle(dir);
 	}
-
-
-	// Close Handle
-	CloseHandle(dir);
 }
 
 
@@ -2919,25 +3414,6 @@ public CopyFinished(bool:success, String:from[], String:to[])
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
 **************
 
@@ -2945,10 +3421,6 @@ Compressing and Uploading
 
 **************
 */
-
-
-
-
 
 
 
@@ -2966,6 +3438,8 @@ public OnCompressed(const String:output[], const size, CMDReturn:status)
 			{
 				CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Failed", output);
 			}
+
+			Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE], output);
 
 			// Stop
 			StopDownload();
@@ -3006,7 +3480,6 @@ public OnCompressed(const String:output[], const size, CMDReturn:status)
 				g_Downloads[g_iCurrentDownload][DL_MODE] = MODUS_UPLOAD;
 
 				
-
 				// Upload this file
 				// Next step is in OnUploadProgress when every file is uploaded
 				if (!g_bFTPLogin)
@@ -3040,8 +3513,6 @@ public OnCompressed(const String:output[], const size, CMDReturn:status)
 
 
 
-
-
 // Download updated
 public OnUploadProgress(bool:finished, const String:error[], Float:dltotal, Float:dlnow, Float:ultotal, Float:ulnow)
 {
@@ -3052,6 +3523,9 @@ public OnUploadProgress(bool:finished, const String:error[], Float:dltotal, Floa
 		{
 			CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Failed", error);
 		}
+
+
+		Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE], error);
 
 		// Stop
 		StopDownload();
@@ -3086,6 +3560,8 @@ public OnUploadProgress(bool:finished, const String:error[], Float:dltotal, Floa
 				{
 					CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Finish", g_Downloads[g_iCurrentDownload][DL_NAME]);
 				}
+
+				Log("%L: Downloading Map %s(%s) SUCCEEDED", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE]);
 
 				// Stop here
 				StopDownload();
