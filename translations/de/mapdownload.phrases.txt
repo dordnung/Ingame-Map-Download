@@ -18,7 +18,7 @@
 	}
 	"Notice4"
 	{
-		"de"		"{lightgreen}Schreibe {green}!{1} <url> {lightgreen}um eine Map {green}direkt von der URL zu downloaden"
+		"de"		"{lightgreen}Schreibe {green}!{1} <url> {lightgreen}um eine Map {green}direkt von einer URL zu downloaden"
 	}
 	"Wait"
 	{
