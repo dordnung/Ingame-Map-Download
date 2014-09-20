@@ -116,7 +116,7 @@ enum DownloadInfo
 	Modus:DL_MODE,                              // Current dl Modes
 	String:DL_ID[32],                           // Map ID
 	String:DL_NAME[128],                        // Map Name
-	String:DL_FILE[128],                        // Download Link
+	String:DL_FILE[PLATFORM_MAX_PATH + 1],      // Download Link
 	String:DL_SAVE[PLATFORM_MAX_PATH + 1],      // Path to save to
 	Handle:DL_FILES,                            // Array to store files
 	Handle:DL_FTPFILES                          // Array to store ftp files
@@ -2394,12 +2394,11 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
 				decl String:rating[12];
 				decl String:votes[12];
 				decl String:views[12];
-				decl String:file[128];
-				decl String:id[128];
+				decl String:file[256];
+				decl String:id[64];
 				decl String:size[32];
 				decl String:item[sizeof(name) + sizeof(rating) + sizeof(downloads) + 32];
-				decl String:item2[128 + 128 + 128 + 32 + 16 + 64 + 64 + 12 + 12 + 12 + 12 + 12];
-
+				decl String:item2[256 + 64 + 128 + 32 + 16 + 64 + 64 + 12 + 12 + 12 + 12 + 32];
 				
 				// Title
 				SetMenuTitle(menu, "%T", "ChooseMap", client);
@@ -2430,8 +2429,8 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
 					}
 
 
-					// Replace < in name
-					ReplaceString(name, sizeof(name), "<", "", false);
+					// Replace <| in name
+					ReplaceString(name, sizeof(name), "<|", "", false);
 
 
 					// Add to menu
@@ -2480,14 +2479,14 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
 					
 
 					// This is tricky, add all needed data to the callback parameter
-					// Non of these data has currently a '<' in it
+					// Non of these data has currently a '<|' in it
 					if (!isCustom)
 					{
-						Format(item2, sizeof(item2), "%s<%s<%s<%s<%s<%s<%s<%s<%s<%s<%s", file, id, name, size, game, date, mdate, downloads, rating, votes, views);
+						Format(item2, sizeof(item2), "%s<|%s<|%s<|%s<|%s<|%s<|%s<|%s<|%s<|%s<|%s", file, id, name, size, game, date, mdate, downloads, rating, votes, views);
 					}
 					else
 					{
-						Format(item2, sizeof(item2), "%s<%s", name, id);
+						Format(item2, sizeof(item2), "%s<|%s", name, id);
 					}
 
 
@@ -2534,7 +2533,7 @@ public OnMapChoose(Handle:menu, MenuAction:action, param1, param2)
 
 
 		// Explode choice again
-		ExplodeString(choose, "<", splits, sizeof(splits), sizeof(splits[]));
+		ExplodeString(choose, "<|", splits, sizeof(splits), sizeof(splits[]));
 
 
 		// Save Data
@@ -2764,12 +2763,12 @@ StartDownloadingMap(client, const String:id[], const String:map[], const String:
 	if (!isCustom)
 	{
 		strcopy(g_Downloads[g_iTotalDownloads][DL_NAME], 128, map);
-		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 128, link);
+		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 256, link);
 	}
 	else
 	{
 		SplitString(map, ".", g_Downloads[g_iTotalDownloads][DL_NAME], 128);
-		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 128, "%s/%s", link, map);
+		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 256, "%s/%s", link, map);
 	}
 
 	strcopy(g_Downloads[g_iTotalDownloads][DL_ID], 32, id);
