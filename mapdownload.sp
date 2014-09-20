@@ -1822,40 +1822,44 @@ public Action:DownloadMapDirect(client, args)
 {
 	if (IsClientValid(client))
 	{
-		decl String:argument[128];
-		decl String:id[16];
-		decl String:name[16];
-		new String:url[128];
-
-		// Concat all arguments
-		for (new i=1; i <= args; i++)
+		if (args >= 1)
 		{
-			GetCmdArg(i, argument, sizeof(argument));
-			StrCat(url, sizeof(url), argument);
-		}
+			decl String:fileName[128];
+			decl String:id[16];
+			decl String:name[16];
+			new String:url[128];
 
-		// Check valid
-		if ((StrEndsWith(url, ".bz2") || StrEndsWith(url, ".rar") || StrEndsWith(url, ".zip") || StrEndsWith(url, ".7z")) && !StrEndsWith(url, ".txt.bz2"))
-		{
-			// Get the name of the map
-			GetFileName(url, argument, sizeof(argument));
-			SplitString(argument, ".", name, sizeof(name));
+			// Concat all arguments to url
+			GetCmdArgString(url, sizeof(url));
 
-			// We need a random id
-			Format(id, sizeof(id), "%i", GetRandomInt(5000, 10000));
+			// Check valid
+			if ((StrEndsWith(url, ".bz2") || StrEndsWith(url, ".rar") || StrEndsWith(url, ".zip") || StrEndsWith(url, ".7z")) && !StrEndsWith(url, ".txt.bz2"))
+			{
+				// Get the name of the map
+				GetFileName(url, fileName, sizeof(fileName));
+				SplitString(fileName, ".", name, sizeof(name));
 
-			
-			// Download the Map
-			StartDownloadingMap(client, id, name, url, false);
+				// We need a random id
+				Format(id, sizeof(id), "%i", GetRandomInt(5000, 10000));
+
+				
+				// Download the Map
+				StartDownloadingMap(client, id, name, url, false);
 
 
-			// Finish
-			return Plugin_Handled;
+				// Finish
+				return Plugin_Handled;
+			}
+			else
+			{
+				// URL isn't a file
+				CPrintToChat(client, "%s %t", g_sTagChat, "InvalidUrl", url);
+			}
 		}
 		else
 		{
-			// URL isn't a file
-			CPrintToChat(client, "%s %t", g_sTagChat, "InvalidUrl", url);
+			// No argument given
+			ReplyToCommand(client, "Usage: %s <url>", g_sCommandDownload);
 		}
 	}
 
