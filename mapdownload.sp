@@ -116,7 +116,7 @@ enum DownloadInfo
 	Modus:DL_MODE,                              // Current dl Modes
 	String:DL_ID[32],                           // Map ID
 	String:DL_NAME[128],                        // Map Name
-	String:DL_FILE[PLATFORM_MAX_PATH + 1],      // Download Link
+	String:DL_FILE[128],                        // Download Link
 	String:DL_SAVE[PLATFORM_MAX_PATH + 1],      // Path to save to
 	Handle:DL_FILES,                            // Array to store files
 	Handle:DL_FTPFILES                          // Array to store ftp files
@@ -149,7 +149,7 @@ new String:g_sFTPUser[64];
 new String:g_sFTPPW[128];
 new String:g_sFTPPath[PLATFORM_MAX_PATH + 1];
 new String:g_sGame[12];
-new String:g_sSearch[MAXPLAYERS + 1][NUMBER_ELEMENTS][64];
+new String:g_sSearch[MAXPLAYERS + 1][NUMBER_ELEMENTS][128];
 new String:g_sLogin[MAXPLAYERS + 1][2][64];
 new String:g_sWhitelistMaps[1024];
 new String:g_sBlacklistMaps[1024];
@@ -2763,12 +2763,12 @@ StartDownloadingMap(client, const String:id[], const String:map[], const String:
 	if (!isCustom)
 	{
 		strcopy(g_Downloads[g_iTotalDownloads][DL_NAME], 128, map);
-		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 256, link);
+		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 128, link);
 	}
 	else
 	{
 		SplitString(map, ".", g_Downloads[g_iTotalDownloads][DL_NAME], 128);
-		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 256, "%s/%s", link, map);
+		Format(g_Downloads[g_iTotalDownloads][DL_FILE], 128, "%s/%s", link, map);
 	}
 
 	strcopy(g_Downloads[g_iTotalDownloads][DL_ID], 32, id);
