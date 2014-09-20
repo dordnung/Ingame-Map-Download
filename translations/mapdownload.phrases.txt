@@ -12,11 +12,16 @@
 	"Notice2"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}Type {green}!{1} [searchmask] {lightgreen}to open the {green}custom map list"
+		"en"		"{lightgreen}Type {green}!{1} {searchmask] {lightgreen}to open the {green}custom map list"
 	}
 	"Notice3"
 	{
 		"en"		"{lightgreen}You can use {green}%% {lightgreen}as a {green}search-wildcard"
+	}
+	"Notice4"
+	{
+		"#format"	"{1:s}"
+		"en"		"{lightgreen}Type {green}!{1} <url> {lightgreen}to download {green}a map directly from an url"
 	}
 	"Wait"
 	{
@@ -186,6 +191,11 @@
 	"Compressing"
 	{
 		"en"		"Compressing map"
+	}
+	"InvalidUrl"
+	{
+		"#format"	"{1:s}"
+		"en"		"{lightgreen}The URL '{1}' {green}isn't a valid file!"
 	}
 	"Queue"
 	{

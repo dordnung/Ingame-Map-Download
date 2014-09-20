@@ -140,6 +140,7 @@ new String:g_sClientConfig[MAXPLAYERS + 1][256];
 new String:g_sPluginPath[PLATFORM_MAX_PATH + 1];
 new String:g_sCommand[32];
 new String:g_sCommandCustom[32];
+new String:g_sCommandDownload[32];
 new String:g_sFTPCommand[32];
 new String:g_sTag[32];
 new String:g_sTagChat[64];
@@ -189,6 +190,7 @@ new g_iDatabaseTries;
 new Handle:g_hSearch;
 new Handle:g_hCommand;
 new Handle:g_hCommandCustom;
+new Handle:g_hCommandDownload;
 new Handle:g_hUpdate;
 new Handle:g_hUpdateDB;
 new Handle:g_hTag;
@@ -381,6 +383,7 @@ public OnPluginStart()
 	// Set Cvars
 	g_hCommand = AutoExecConfig_CreateConVar("mapdownload_command", "sm_mapdl", "Command to open Map Download menu. Append prefix 'sm_' for chat use!");
 	g_hCommandCustom = AutoExecConfig_CreateConVar("mapdownload_command_custom", "sm_mapdl_custom", "Command to open custom Map Download menu. Append prefix 'sm_' for chat use!");
+	g_hCommandDownload = AutoExecConfig_CreateConVar("mapdownload_command_download", "sm_mapdl_url", "Command to download a map directly from an url. Append prefix 'sm_' for chat use!");
 	g_hTag = AutoExecConfig_CreateConVar("mapdownload_tag", "Map Download", "Chat prefix of Map Download");
 	g_hFlag = AutoExecConfig_CreateConVar("mapdownload_flag", "bg", "Flagstring to access menu (see configs/admin_levels.cfg)");
 	g_hShow = AutoExecConfig_CreateConVar("mapdownload_show", "0", "1 = All players see map downloading status, 0 = Only admins");
@@ -442,6 +445,7 @@ public OnConfigsExecuted()
 	GetConVarString(g_hShowColor, showColor, sizeof(showColor));
 	GetConVarString(g_hCommand, g_sCommand, sizeof(g_sCommand));
 	GetConVarString(g_hCommandCustom, g_sCommandCustom, sizeof(g_sCommandCustom));
+	GetConVarString(g_hCommandDownload, g_sCommandDownload, sizeof(g_sCommandDownload));
 	GetConVarString(g_hFTPCommand, g_sFTPCommand, sizeof(g_sFTPCommand));
 	GetConVarString(g_hTag, g_sTag, sizeof(g_sTag));
 	GetConVarString(g_hFlag, g_sFlag, sizeof(g_sFlag));
@@ -538,6 +542,7 @@ public OnConfigsExecuted()
 		// Now register command to open menu
 		RegAdminCmd(g_sCommand, OpenMenu, ReadFlagString(g_sFlag));
 		RegAdminCmd(g_sCommandCustom, OpenMenuCustom, ReadFlagString(g_sFlag));
+		RegAdminCmd(g_sCommandDownload, DownloadMapDirect, ReadFlagString(g_sFlag));
 		RegConsoleCmd(g_sFTPCommand, OnSetLoginData);
 
 		// Prepare folders and connect to database
@@ -1589,6 +1594,7 @@ public Action:NoticeTimer(Handle:timer, any:data)
 {
 	decl String:commandBuffer[64];
 	decl String:commandBufferCustom[64];
+	decl String:commandBufferDownload[64];
 
 
 	// Only for commands with sm_
@@ -1600,6 +1606,9 @@ public Action:NoticeTimer(Handle:timer, any:data)
 
 		Format(commandBufferCustom, sizeof(commandBufferCustom), g_sCommandCustom);
 		ReplaceString(commandBufferCustom, sizeof(commandBufferCustom), "sm_", "");
+
+		Format(commandBufferDownload, sizeof(commandBufferDownload), g_sCommandDownload);
+		ReplaceString(commandBufferDownload, sizeof(commandBufferDownload), "sm_", "");
 
 
 		// Client loop
@@ -1614,7 +1623,7 @@ public Action:NoticeTimer(Handle:timer, any:data)
 					CPrintToChat(i, "%s %t", g_sTagChat, "Notice", commandBuffer);
 				}
 
-				if (g_iCurrentNotice == 2)
+				if (g_iCurrentNotice == 3)
 				{
 					CPrintToChat(i, "%s %t", g_sTagChat, "Notice2", commandBufferCustom);
 				}
@@ -1622,6 +1631,11 @@ public Action:NoticeTimer(Handle:timer, any:data)
 				if (g_iCurrentNotice == 1)
 				{
 					CPrintToChat(i, "%s %t", g_sTagChat, "Notice3");
+				}
+
+				if (g_iCurrentNotice == 2)
+				{
+					CPrintToChat(i, "%s %t", g_sTagChat, "Notice4", commandBufferDownload);
 				}
 			}
 		}
@@ -1631,7 +1645,7 @@ public Action:NoticeTimer(Handle:timer, any:data)
 		g_iCurrentNotice++;
 
 
-		if ((g_bUseCustom && g_iCurrentNotice == 3) || (!g_bUseCustom && g_iCurrentNotice == 2))
+		if ((g_bUseCustom && g_iCurrentNotice == 4) || (!g_bUseCustom && g_iCurrentNotice == 3))
 		{
 			// Reset
 			g_iCurrentNotice = 0;
@@ -1799,6 +1813,54 @@ public Action:OpenMenu(client, args)
 
 	// Finish
 	return Plugin_Handled;
+}
+
+
+
+// Download a Map directly
+public Action:DownloadMapDirect(client, args)
+{
+	if (IsClientValid(client))
+	{
+		decl String:argument[128];
+		decl String:id[16];
+		decl String:name[16];
+		new String:url[128];
+
+		// Concat all arguments
+		for (new i=1; i <= args; i++)
+		{
+			GetCmdArg(i, argument, sizeof(argument));
+			StrCat(url, sizeof(url), argument);
+		}
+
+		// Check valid
+		if ((StrEndsWith(url, ".bz2") || StrEndsWith(url, ".rar") || StrEndsWith(url, ".zip") || StrEndsWith(url, ".7z")) && !StrEndsWith(url, ".txt.bz2"))
+		{
+			// Get the name of the map
+			GetFileName(url, argument, sizeof(argument));
+			SplitString(argument, ".", name, sizeof(name));
+
+			// We need a random id
+			Format(id, sizeof(id), "%i", GetRandomInt(5000, 10000));
+
+			
+			// Download the Map
+			StartDownloadingMap(client, id, name, url, false);
+
+
+			// Finish
+			return Plugin_Handled;
+		}
+		else
+		{
+			// URL isn't a file
+			CPrintToChat(client, "%s %t", g_sTagChat, "InvalidUrl", url);
+		}
+	}
+
+	// Client is invalid
+	return Plugin_Continue;
 }
 
 

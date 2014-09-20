@@ -16,6 +16,10 @@
 	{
 		"de"		"{lightgreen}Du kannst {green}%% {lightgreen}als {green}Such-Wildcard {lightgreen}benutzen"
 	}
+	"Notice4"
+	{
+		"de"		"{lightgreen}Schreibe {green}!{1} <url> {lightgreen}um eine Map {green}direkt von der URL zu downloaden"
+	}
 	"Wait"
 	{
 		"de"		"{lightgreen}Die Maximale Anzahl von {green}20 Downloads wurde erreicht. {lightgreen}Bitte warten!"
@@ -175,6 +179,10 @@
 	"Compressing"
 	{
 		"de"		"Komprimiere Map"
+	}
+	"InvalidUrl"
+	{
+		"de"		"{lightgreen}Die URL '{1}' {green}ist keine gültige Datei!"
 	}
 	"Queue"
 	{
