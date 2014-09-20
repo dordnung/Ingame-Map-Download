@@ -7,12 +7,12 @@
 	"Notice"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}Type {green}!{1} [searchmask] {lightgreen}to open the {green}map list"
+		"en"		"{lightgreen}Type {green}!{1} <searchmask> {lightgreen}to open the {green}map list"
 	}
 	"Notice2"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}Type {green}!{1} {searchmask] {lightgreen}to open the {green}custom map list"
+		"en"		"{lightgreen}Type {green}!{1} <searchmask> {lightgreen}to open the {green}custom map list"
 	}
 	"Notice3"
 	{

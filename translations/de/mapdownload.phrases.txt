@@ -6,11 +6,11 @@
 	}
 	"Notice"
 	{
-		"de"		"{lightgreen}Schreibe {green}!{1} [suchmuster] {lightgreen}um die {green}Map Liste {lightgreen}zu öffnen"
+		"de"		"{lightgreen}Schreibe {green}!{1} <searchmask> {lightgreen}um die {green}Map Liste {lightgreen}zu öffnen"
 	}
 	"Notice2"
 	{
-		"de"		"{lightgreen}Schreibe {green}!{1} [suchmuster] {lightgreen}um die {green}Eigene Map Liste {lightgreen}zu öffnen"
+		"de"		"{lightgreen}Schreibe {green}!{1} <searchmask> {lightgreen}um die {green}Eigene Map Liste {lightgreen}zu öffnen"
 	}
 	"Notice3"
 	{
