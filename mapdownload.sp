@@ -2049,7 +2049,7 @@ OpenConfigMenu(client)
 	new Handle:menu = CreateMenu(OnChooseSortType);
 
 
-	SetMenuTitle(menu, "%T", "ChooseSortType", client);
+	SetMenuTitle(menu, "%T", "ChooseSortTypeMaps", client);
 	SetMenuExitBackButton(menu, true);
 
 	Format(item, sizeof(item), "%T", "Ascending", client);

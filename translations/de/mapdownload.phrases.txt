@@ -128,7 +128,7 @@
 	{
 		"de"		"Best bewertete Maps"
 	}
-	"ChooseSortType"
+	"ChooseSortTypeMaps"
 	{
 		"de"		"Wähle einen Sortiertyp für 'Alle Maps'"
 	}
