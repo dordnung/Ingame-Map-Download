@@ -61,13 +61,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>CURL_STATICLIB;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(CURL_PATH); $(SQLITE3_PATH);;../json;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CURL7-34-0); $(SQLITE3);../json;</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(CURL_PATH); $(SQLITE3_PATH);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CURL7-34-0); $(SQLITE3);</AdditionalLibraryDirectories>
       <AdditionalDependencies>sqlite3.lib;libcurl_a.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>msvcrt;msvcrtd;libcmt;</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -82,14 +82,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>CURL_STATICLIB;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(CURL_PATH); $(SQLITE3_PATH);../json;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(CURL7-34-0); $(SQLITE3);../json;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(CURL_PATH); $(SQLITE3_PATH);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CURL7-34-0); $(SQLITE3);</AdditionalLibraryDirectories>
       <AdditionalDependencies>sqlite3.lib;libcurl_a.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
