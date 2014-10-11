@@ -133,7 +133,7 @@ new g_Downloads[20][DownloadInfo];
 
 
 // Global strings
-new String:g_sVersion[] = "2.2.0";
+new String:g_sVersion[] = "2.2.1";
 new String:g_sModes[][] = {"Downloading", "Uploading", "Compressing"};
 new String:g_sGameSearch[64];
 new String:g_sClientConfig[MAXPLAYERS + 1][256];
@@ -1075,7 +1075,15 @@ ParseLists()
 				// whitelist?
 				if (StrEqual(section, "whitelist", false))
 				{
-					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_categories_v2`.`name` LIKE '%s' ESCAPE '?' ", searchFinal);
+					if (strlen(g_sWhitelistCategories) == 0)
+					{
+						Format(searchFinal, sizeof(searchFinal), "AND (`mapdl_categories_v2`.`name` LIKE '%s' ESCAPE '?'", searchFinal);
+					}
+					else
+					{
+						Format(searchFinal, sizeof(searchFinal), " OR `mapdl_categories_v2`.`name` LIKE '%s' ESCAPE '?'", searchFinal);
+					}
+
 					StrCat(g_sWhitelistCategories, sizeof(g_sWhitelistCategories), searchFinal);
 				}
 
@@ -1086,8 +1094,13 @@ ParseLists()
 					StrCat(g_sBlacklistCategories, sizeof(g_sBlacklistCategories), searchFinal);
 				}
 			}
-		} 
+		}
 		while (KvGotoNextKey(listHandle, false));
+
+		if (strlen(g_sWhitelistCategories) > 0)
+		{
+			StrCat(g_sWhitelistCategories, sizeof(g_sWhitelistCategories), ")");
+		}
 	}
 
 
@@ -1124,7 +1137,15 @@ ParseLists()
 				// whitelist?
 				if (StrEqual(section, "whitelist", false))
 				{
-					Format(searchFinal, sizeof(searchFinal), "AND `mapdl_maps_v2`.`name` LIKE '%s' ESCAPE '?' ", searchFinal);
+					if (strlen(g_sWhitelistMaps) == 0)
+					{
+						Format(searchFinal, sizeof(searchFinal), "AND (`mapdl_maps_v2`.`name` LIKE '%s' ESCAPE '?'", searchFinal);
+					}
+					else
+					{
+						Format(searchFinal, sizeof(searchFinal), " OR `mapdl_maps_v2`.`name` LIKE '%s' ESCAPE '?'", searchFinal);
+					}
+
 					StrCat(g_sWhitelistMaps, sizeof(g_sWhitelistMaps), searchFinal);
 				}
 
@@ -1137,6 +1158,11 @@ ParseLists()
 			}
 		} 
 		while (KvGotoNextKey(listHandle, false));
+
+		if (strlen(g_sWhitelistMaps) > 0)
+		{
+			StrCat(g_sWhitelistMaps, sizeof(g_sWhitelistMaps), ")");
+		}
 	}
 
 
