@@ -22,9 +22,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>
 
 CPP = g++
-CURL = ../curl
-SQLITE3 = ../sqlite3
-OPENSSL = ../openssl
 JSON = ./json
 
 BINARY = gamebanana.bin
@@ -33,9 +30,9 @@ BINARY = gamebanana.bin
 OBJECTS += $(JSON)/json_value.cpp $(JSON)/json_reader.cpp $(JSON)/json_writer.cpp main.cpp
 BIN_DIR = .
 
-INCLUDE += -I./ -I$(CURL) -I$(SQLITE3) -I$(JSON)
+INCLUDE += -I./ -I$(JSON)
 
-LINK = $(CURL)/libcurl.a $(OPENSSL)/libssl.a $(OPENSSL)/libcrypto.a $(SQLITE3)/libsqlite3.a -lm -ldl -lrt -m32
+LINK = -Wl,-Bstatic -lcurl -lssl -lcrypto -lz -lsqlite3 -Wl,-Bdynamic -lm -ldl -lrt -m32
 
 CFLAGS += -O3 -funroll-loops -Wall -pipe -std=c++0x -pthread -msse -m32 -fpermissive -D_LINUX -DLINUX -DCURL_STATICLIB -DPOSIX -DCOMPILER_GCC -DNDEBUG -Dstricmp=strcasecmp \
 			-D_stricmp=strcasecmp -D_strnicmp=strncasecmp -Dstrnicmp=strncasecmp -D_snprintf=snprintf -D_vsnprintf=vsnprintf \
