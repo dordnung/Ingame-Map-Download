@@ -5,23 +5,23 @@
  * License     GPLv3
  * Web         http://popoklopsi.de
  * -----------------------------------------------------
- * 
+ *
  * Gamebanana Maplister
- * Copyright (C) 2012-2013 David <popoklopsi> Ordnung
- * 
+ * Copyright (C) 2012-2015 David <popoklopsi> Ordnung
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
- *  
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>
-*/
+ */
 
 // c++ libs
 // So much stuff ^^
@@ -50,10 +50,10 @@
 
 // Sleeping
 #ifdef _WIN32
-	#define Sleeping(seconds) Sleep(seconds*1000);
+#define Sleeping(seconds) Sleep(seconds*1000);
 #else
-	#include <unistd.h>
-	#define Sleeping(seconds) sleep(seconds);
+#include <unistd.h>
+#define Sleeping(seconds) sleep(seconds);
 #endif
 
 
@@ -64,7 +64,7 @@ using namespace std;
 
 
 // Thread for Curl Performances
-typedef void (*callback)(char*, string, string, string);
+typedef void(*callback)(char*, string, string, string);
 
 
 
