@@ -27,8 +27,14 @@
 #define isfinite std::isfinite
 #endif
 
-#if defined(_MSC_VER) && _MSC_VER < 1500 // VC++ 8.0 and below
+#if defined(_MSC_VER)
+#if !defined(WINCE) && defined(__STDC_SECURE_LIB__) && _MSC_VER >= 1500 // VC++ 9.0 and above 
+#define snprintf sprintf_s
+#elif _MSC_VER >= 1900 // VC++ 14.0 and above
+#define snprintf std::snprintf
+#else
 #define snprintf _snprintf
+#endif
 #elif defined(__ANDROID__)
 #define snprintf snprintf
 #elif __cplusplus >= 201103L
@@ -48,10 +54,10 @@
 
 namespace Json {
 
-#if __cplusplus >= 201103L
-typedef std::unique_ptr<StreamWriter> StreamWriterPtr;
+#if __GNUC__ >= 6
+typedef std::scoped_ptr<StreamWriter> const  StreamWriterPtr;
 #else
-typedef std::auto_ptr<StreamWriter>   StreamWriterPtr;
+typedef std::auto_ptr<StreamWriter>          StreamWriterPtr;
 #endif
 
 static bool containsControlCharacter(const char* str) {
@@ -75,12 +81,15 @@ static bool containsControlCharacter0(const char* str, unsigned len) {
 std::string valueToString(LargestInt value) {
   UIntToStringBuffer buffer;
   char* current = buffer + sizeof(buffer);
-  bool isNegative = value < 0;
-  if (isNegative)
-    value = -value;
-  uintToString(LargestUInt(value), current);
-  if (isNegative)
+  if (value == Value::minLargestInt) {
+    uintToString(LargestUInt(Value::maxLargestInt) + 1, current);
     *--current = '-';
+  } else if (value < 0) {
+    uintToString(LargestUInt(-value), current);
+    *--current = '-';
+  } else {
+    uintToString(LargestUInt(value), current);
+  }
   assert(current >= buffer);
   return current;
 }
@@ -105,42 +114,37 @@ std::string valueToString(UInt value) {
 
 #endif // # if defined(JSON_HAS_INT64)
 
-std::string valueToString(double value) {
+std::string valueToString(double value, bool useSpecialFloats, unsigned int precision) {
   // Allocate a buffer that is more than large enough to store the 16 digits of
   // precision requested below.
   char buffer[32];
   int len = -1;
 
-// Print into the buffer. We need not request the alternative representation
-// that always has a decimal point because JSON doesn't distingish the
-// concepts of reals and integers.
-#if defined(_MSC_VER) && defined(__STDC_SECURE_LIB__) // Use secure version with
-                                                      // visual studio 2005 to
-                                                      // avoid warning.
-#if defined(WINCE)
-  len = _snprintf(buffer, sizeof(buffer), "%.17g", value);
-#else
-  len = sprintf_s(buffer, sizeof(buffer), "%.17g", value);
-#endif
-#else
+  char formatString[6];
+  sprintf(formatString, "%%.%dg", precision);
+
+  // Print into the buffer. We need not request the alternative representation
+  // that always has a decimal point because JSON doesn't distingish the
+  // concepts of reals and integers.
   if (isfinite(value)) {
-    len = snprintf(buffer, sizeof(buffer), "%.17g", value);
+    len = snprintf(buffer, sizeof(buffer), formatString, value);
   } else {
     // IEEE standard states that NaN values will not compare to themselves
     if (value != value) {
-      len = snprintf(buffer, sizeof(buffer), "null");
+      len = snprintf(buffer, sizeof(buffer), useSpecialFloats ? "NaN" : "null");
     } else if (value < 0) {
-      len = snprintf(buffer, sizeof(buffer), "-1e+9999");
+      len = snprintf(buffer, sizeof(buffer), useSpecialFloats ? "-Infinity" : "-1e+9999");
     } else {
-      len = snprintf(buffer, sizeof(buffer), "1e+9999");
+      len = snprintf(buffer, sizeof(buffer), useSpecialFloats ? "Infinity" : "1e+9999");
     }
     // For those, we do not need to call fixNumLoc, but it is fast.
   }
-#endif
   assert(len >= 0);
   fixNumericLocale(buffer, buffer + len);
   return buffer;
 }
+
+std::string valueToString(double value) { return valueToString(value, false, 17); }
 
 std::string valueToString(bool value) { return value ? "true" : "false"; }
 
@@ -292,28 +296,21 @@ Writer::~Writer() {}
 // //////////////////////////////////////////////////////////////////
 
 FastWriter::FastWriter()
-    : yamlCompatiblityEnabled_(false), dropNullPlaceholders_(false),
-      omitEndingLineFeed_(false) {}
+    : yamlCompatiblityEnabled_(false) {}
 
 void FastWriter::enableYAMLCompatibility() { yamlCompatiblityEnabled_ = true; }
-
-void FastWriter::dropNullPlaceholders() { dropNullPlaceholders_ = true; }
-
-void FastWriter::omitEndingLineFeed() { omitEndingLineFeed_ = true; }
 
 std::string FastWriter::write(const Value& root) {
   document_ = "";
   writeValue(root);
-  if (!omitEndingLineFeed_)
-    document_ += "\n";
+  document_ += "\n";
   return document_;
 }
 
 void FastWriter::writeValue(const Value& value) {
   switch (value.type()) {
   case nullValue:
-    if (!dropNullPlaceholders_)
-      document_ += "null";
+    document_ += "null";
     break;
   case intValue:
     document_ += valueToString(value.asLargestInt());
@@ -813,7 +810,9 @@ struct BuiltStyledStreamWriter : public StreamWriter
       CommentStyle::Enum cs,
       std::string const& colonSymbol,
       std::string const& nullSymbol,
-      std::string const& endingLineFeedSymbol);
+      std::string const& endingLineFeedSymbol,
+      bool useSpecialFloats,
+      unsigned int precision);
   virtual int write(Value const& root, std::ostream* sout);
 private:
   void writeValue(Value const& value);
@@ -840,13 +839,17 @@ private:
   std::string endingLineFeedSymbol_;
   bool addChildValues_ : 1;
   bool indented_ : 1;
+  bool useSpecialFloats_ : 1;
+  unsigned int precision_;
 };
 BuiltStyledStreamWriter::BuiltStyledStreamWriter(
       std::string const& indentation,
       CommentStyle::Enum cs,
       std::string const& colonSymbol,
       std::string const& nullSymbol,
-      std::string const& endingLineFeedSymbol)
+      std::string const& endingLineFeedSymbol,
+      bool useSpecialFloats,
+      unsigned int precision)
   : rightMargin_(74)
   , indentation_(indentation)
   , cs_(cs)
@@ -855,6 +858,8 @@ BuiltStyledStreamWriter::BuiltStyledStreamWriter(
   , endingLineFeedSymbol_(endingLineFeedSymbol)
   , addChildValues_(false)
   , indented_(false)
+  , useSpecialFloats_(useSpecialFloats)
+  , precision_(precision)
 {
 }
 int BuiltStyledStreamWriter::write(Value const& root, std::ostream* sout)
@@ -884,7 +889,7 @@ void BuiltStyledStreamWriter::writeValue(Value const& value) {
     pushValue(valueToString(value.asLargestUInt()));
     break;
   case realValue:
-    pushValue(valueToString(value.asDouble()));
+    pushValue(valueToString(value.asDouble(), useSpecialFloats_, precision_));
     break;
   case stringValue:
   {
@@ -1099,6 +1104,8 @@ StreamWriter* StreamWriterBuilder::newStreamWriter() const
   std::string cs_str = settings_["commentStyle"].asString();
   bool eyc = settings_["enableYAMLCompatibility"].asBool();
   bool dnp = settings_["dropNullPlaceholders"].asBool();
+  bool usf = settings_["useSpecialFloats"].asBool(); 
+  unsigned int pre = settings_["precision"].asUInt();
   CommentStyle::Enum cs = CommentStyle::All;
   if (cs_str == "All") {
     cs = CommentStyle::All;
@@ -1117,10 +1124,11 @@ StreamWriter* StreamWriterBuilder::newStreamWriter() const
   if (dnp) {
     nullSymbol = "";
   }
+  if (pre > 17) pre = 17;
   std::string endingLineFeedSymbol = "";
   return new BuiltStyledStreamWriter(
       indentation, cs,
-      colonSymbol, nullSymbol, endingLineFeedSymbol);
+      colonSymbol, nullSymbol, endingLineFeedSymbol, usf, pre);
 }
 static void getValidWriterKeys(std::set<std::string>* valid_keys)
 {
@@ -1129,6 +1137,8 @@ static void getValidWriterKeys(std::set<std::string>* valid_keys)
   valid_keys->insert("commentStyle");
   valid_keys->insert("enableYAMLCompatibility");
   valid_keys->insert("dropNullPlaceholders");
+  valid_keys->insert("useSpecialFloats");
+  valid_keys->insert("precision");
 }
 bool StreamWriterBuilder::validate(Json::Value* invalid) const
 {
@@ -1159,6 +1169,8 @@ void StreamWriterBuilder::setDefaults(Json::Value* settings)
   (*settings)["indentation"] = "\t";
   (*settings)["enableYAMLCompatibility"] = false;
   (*settings)["dropNullPlaceholders"] = false;
+  (*settings)["useSpecialFloats"] = false;
+  (*settings)["precision"] = 17;
   //! [StreamWriterBuilderDefaults]
 }
 

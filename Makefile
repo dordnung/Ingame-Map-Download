@@ -23,16 +23,17 @@
 
 CPP = g++
 JSON = ./json
+SQLITE3 = ./sqlite3
 
 BINARY = gamebanana.bin
 
 
-OBJECTS += $(JSON)/json_value.cpp $(JSON)/json_reader.cpp $(JSON)/json_writer.cpp main.cpp
+OBJECTS += $(JSON)/json_value.cpp $(JSON)/json_reader.cpp $(JSON)/json_writer.cpp main.cpp $(SQLITE3)/sqlite3.c
 BIN_DIR = .
 
-INCLUDE += -I./ -I$(JSON)
+INCLUDE += -I./ -I$(JSON) -I$(SQLITE3)
 
-LINK = -Wl,-Bstatic -lcurl -lssl -lcrypto -lz -lsqlite3 -Wl,-Bdynamic -lm -ldl -lrt -m32
+LINK = -Wl,-Bstatic -lcurl -lssl -lcrypto -lz -Wl,-Bdynamic -lm -ldl -lpthread -lrt -m32
 
 CFLAGS += -O3 -funroll-loops -Wall -pipe -std=c++0x -pthread -msse -m32 -fpermissive -D_LINUX -DLINUX -DCURL_STATICLIB -DPOSIX -DCOMPILER_GCC -DNDEBUG -Dstricmp=strcasecmp \
 			-D_stricmp=strcasecmp -D_strnicmp=strncasecmp -Dstrnicmp=strncasecmp -D_snprintf=snprintf -D_vsnprintf=vsnprintf \

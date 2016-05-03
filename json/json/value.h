@@ -29,6 +29,19 @@
 #pragma warning(disable : 4251)
 #endif // if defined(JSONCPP_DISABLE_DLL_INTERFACE_WARNING)
 
+//Conditional NORETURN attribute on the throw functions would:
+// a) suppress false positives from static code analysis 
+// b) possibly improve optimization opportunities.
+#if !defined(JSONCPP_NORETURN)
+#  if defined(_MSC_VER)
+#    define JSONCPP_NORETURN __declspec(noreturn)
+#  elif defined(__GNUC__)
+#    define JSONCPP_NORETURN __attribute__ ((__noreturn__))
+#  else
+#    define JSONCPP_NORETURN
+#  endif
+#endif
+
 /** \brief JSON (JavaScript Object Notation).
  */
 namespace Json {
@@ -69,9 +82,9 @@ public:
 };
 
 /// used internally
-void throwRuntimeError(std::string const& msg);
+JSONCPP_NORETURN void throwRuntimeError(std::string const& msg);
 /// used internally
-void throwLogicError(std::string const& msg);
+JSONCPP_NORETURN void throwLogicError(std::string const& msg);
 
 /** \brief Type of the value held by a Value object.
  */
@@ -175,8 +188,11 @@ public:
   typedef Json::LargestUInt LargestUInt;
   typedef Json::ArrayIndex ArrayIndex;
 
-  static const Value& null;  ///< We regret this reference to a global instance; prefer the simpler Value().
-  static const Value& nullRef;  ///< just a kludge for binary-compatibility; same as null
+  static const Value& nullRef;
+#if !defined(__ARMEL__)
+  /// \deprecated This exists for binary compatibility only. Use nullRef.
+  static const Value null;
+#endif
   /// Minimum signed integer value that can be stored in a Json::Value.
   static const LargestInt minLargestInt;
   /// Maximum signed integer value that can be stored in a Json::Value.
@@ -298,7 +314,7 @@ Json::Value obj_value(Json::objectValue); // {}
 
   /// Deep copy, then swap(other).
   /// \note Over-write existing comments. To preserve comments, use #swapPayload().
-  Value& operator=(Value other);
+  Value &operator=(const Value &other);
   /// Swap everything.
   void swap(Value& other);
   /// Swap values but leave comments and source offsets in place.
@@ -545,13 +561,6 @@ Json::Value obj_value(Json::objectValue); // {}
   iterator begin();
   iterator end();
 
-  // Accessors for the [start, limit) range of bytes within the JSON text from
-  // which this value was parsed, if any.
-  void setOffsetStart(size_t start);
-  void setOffsetLimit(size_t limit);
-  size_t getOffsetStart() const;
-  size_t getOffsetLimit() const;
-
 private:
   void initBasic(ValueType type, bool allocated = false);
 
@@ -588,11 +597,6 @@ private:
   unsigned int allocated_ : 1; // Notes: if declared as bool, bitfield is useless.
                                // If not allocated_, string_ must be null-terminated.
   CommentInfo* comments_;
-
-  // [start, limit) byte offsets in the source JSON text from which this Value
-  // was extracted.
-  size_t start_;
-  size_t limit_;
 };
 
 /** \brief Experimental and untested: represents an element of the "path" to
