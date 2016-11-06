@@ -314,7 +314,7 @@ void OnGotMapsPage(char *error, string result, string url, string data) {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "") {
 		// Splitter for Maps
-		vector<std::string> founds = splitString(result, "class=\"Name\"", "</a>");
+		vector<std::string> founds = splitString(result, "div class=\"Preview\"", "<img");
 
 		// Must be at least 2
 		if (founds.size() > 1) {
@@ -485,7 +485,6 @@ void OnGotCategorieDetails(char *error, string result, string url, string data) 
 		// Splitter for categories
 		vector<std::string> founds = splitString(result, "<h3>Categories</h3>", "</tbody>");
 
-
 		// Found Categories?
 		if (founds.size() == 2) {
 			// Replace garbage
@@ -494,12 +493,14 @@ void OnGotCategorieDetails(char *error, string result, string url, string data) 
 			replaceString(founds[1], "\r", "");
 
 			// Should be even, but first part is also there
-			if (splitString(founds[1], "<td>", "</td>").size() % 2 == 1) {
+			vector<std::string> categorieParts = splitString(founds[1], "<td", "</td>");
+
+			if (categorieParts.size() % 3 == 1) {
 				// All maps
-				vector<std::string> mapCount = splitString(founds[1], "</a>", "</tr>");
+				vector<std::string> mapCount = splitString(founds[1], "<td>", "</td>");
 
 				// Link name
-				vector<std::string> linkName = splitString(founds[1], "<a href=\"", "</a>");
+				vector<std::string> linkName = splitString(founds[1], "<td class=\"Name\"><a href=\"", "</a>");
 
 				if (linkName.size() <= 1 || mapCount.size() <= 1) {
 					cout << "ERROR: Couldn't get pre categorie link or map count. Program seems to be outdated..." << endl;
