@@ -24,7 +24,7 @@
  */
 
 
-// Header
+ // Header
 #include "main.h"
 
 
@@ -337,7 +337,7 @@ void OnGotMapsPage(char *error, string result, string url, string data) {
 					return;
 				}
 
-				getPageMultiThread(OnGotMapDetails, "http://gamebanana.com/api?request=Map." + data + ".[%22catid%22,%20%22date%22,%20%22mdate%22,%20%22downloads%22,%20%22name%22,%20%22rating%22,%20%22votes%22,%20%22views%22,%20%20{%22Downloadable%28%29%22:[%22sGetLocalDownloadUrl%28%29%22]},%20{%22Downloadable%28%29%22:[%22nGetFilesize%28%29%22]}]", data);
+				getPageMultiThread(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=catid,date,mdate,downloads,name,rating,votes,views,Downloadable().sGetLocalDownloadUrl(),Downloadable().nGetFilesize()", data);
 			}
 		} else {
 			cout << "ERROR: Couldn't get maps head. Programm seems to be outdated..." << endl;
@@ -367,8 +367,6 @@ void OnGotMapDetails(char *error, string result, string url, string data) {
 
 			return;
 		}
-
-		root = root[0];
 
 		// Check all information
 		if (root.size() == 10) {
@@ -453,7 +451,7 @@ void OnGotMapDetails(char *error, string result, string url, string data) {
 					sprintf(fileSizeString, "%.2f MB", fileSize);
 #endif
 				}
-			}
+				}
 
 
 			// Update and print the current status
@@ -463,15 +461,15 @@ void OnGotMapDetails(char *error, string result, string url, string data) {
 			// Sqlite operation in thread
 			thread t1(insertMap, data, categorie, date, mdate, downloads, name, rating, votes, views, download, fileSizeString);
 			t1.join();
-		} else {
+			} else {
 			cout << "ERROR: Couldn't get map information. Program seems to be outdated..." << endl;
 
 			return;
 		}
-	} else {
+		} else {
 		getPageMultiThread(OnGotMapDetails, url, data);
 	}
-}
+	}
 
 
 
@@ -612,33 +610,33 @@ void getGame(int gameInt) {
 	switch (gameInt) {
 		case 1:
 		{
-				  game = "tf2";
+			game = "tf2";
 
-				  break;
+			break;
 		}
 		case 2:
 		{
-				  game = "dods";
+			game = "dods";
 
-				  break;
+			break;
 		}
 		case 3:
 		{
-				  game = "hl2dm";
+			game = "hl2dm";
 
-				  break;
+			break;
 		}
 		case 4:
 		{
-				  game = "css";
+			game = "css";
 
-				  break;
+			break;
 		}
 		case 5:
 		{
-				  game = "csgo";
+			game = "csgo";
 
-				  break;
+			break;
 		}
 	}
 }
