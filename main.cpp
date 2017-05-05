@@ -1,13 +1,13 @@
 /*
  * -----------------------------------------------------
  * File        main.cpp
- * Authors     David <popoklopsi> Ordnung
+ * Authors     David Ordnung
  * License     GPLv3
- * Web         http://popoklopsi.de
+ * Web         http://dordnung.de
  * -----------------------------------------------------
  *
  * Gamebanana Maplister
- * Copyright (C) 2012-2015 David <popoklopsi> Ordnung
+ * Copyright (C) 2012-2017 David Ordnung
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,66 +23,64 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  */
 
-
-// Header
 #include "main.h"
 
-#define MAX_ERRORS 200
-
-
-// Time
-char timeBuffer[128];
-
-
 // The game to list maps for
-string game;
+int currentGame = -1;
 
-// Some data we need to know
-volatile int allMaps;
-volatile int current;
-volatile int errors;
-volatile time_t startTime;
+// Use threading?
+bool threaded = false;
+vector<thread*> runningThreads;
+
+// Current statistics
+volatile int allMaps = 0;
+volatile int current = 0;
+time_t startTime;
 
 // Mutex
 mutex threadMutex;
 
 // Database
-sqlite3* db;
-
+sqlite3 *db;
 
 
 // Where all began :)
-int main(int argc, const char* argv[]) {
-	errors = 0;
-
-	// Choice
-	int choice;
+int main(int argc, const char *argv[]) {
+	int choice = -1;
 	int gameCount = 1;
-	bool useArg = false;
 
-	// Argument?
-	if (argc == 2) {
+	// Search for a game without asking?
+	if (argc >= 2) {
 		choice = atoi(argv[1]);
 
 		if (choice > 0 && choice < 6) {
-			useArg = true;
-		}
-		else if (choice == 6) {
+			cout << "INFO: Found game choice argument, searching maps only for " << getGameFromChoice(choice) << endl;
+		} else if (choice == 6) {
 			gameCount = 5;
-			useArg = true;
+			cout << "INFO: Found game choice argument, searching maps for all games" << endl;
+		} else {
+			choice = -1;
+			cout << "WARNING: " << choice << " is an invalid game choice argument" << endl;
 		}
 	}
 
-	// Standard Value
-	game = "";
-	allMaps = 0;
-	current = 0;
+	// Use threading or not without asking?
+	if (argc >= 3) {
+		if (atoi(argv[2]) > 0) {
+			threaded = true;
+			cout << "INFO: Found thread argument. Using threads" << endl;
+		} else {
+			threaded = false;
+			cout << "INFO: Found thread argument. Don't using threads" << endl;
+		}
+	}
 
 	cout << endl << endl;
 
-	if (!useArg) {
+	// Ask for game to search maps for
+	if (choice == -1) {
 		do {
-			cout << "Please choose a game" << endl;
+			cout << "Please choose a game to search maps for" << endl;
 			cout << "-------------------------------------" << endl;
 			cout << "1. Team Fortress 2" << endl;
 			cout << "2. Day of Defeat: Source" << endl;
@@ -98,69 +96,73 @@ int main(int argc, const char* argv[]) {
 
 			cin >> choice;
 
-
 			// What we have?
 			if (choice == 0) {
 				return 1;
-			}
-
-			else if (choice == 6) {
+			} else if (choice == 6) {
 				gameCount = 5;
-
+				break;
+			} else if (choice > 0 && choice < 6) {
 				break;
 			}
-
-			else if (choice > 0 && choice < 6) {
-				break;
-			}
-
 
 			cout << endl << endl;
 		} while (true);
 	}
 
+	cout << endl << endl;
 
+	// Ask for threading
+	if (argc < 3) {
+		int useThreading = -1;
 
-	// Open Database
+		do {
+			cout << "Should it search with threading?" << endl;
+			cout << "-------------------------------------" << endl;
+			cout << "1. Yes" << endl;
+			cout << "2. No" << endl;
+			cout << "-------------------------------------" << endl;
+			cout << "0. Exit" << endl << endl;
+
+			cout << "Insert your choice: ";
+
+			cin >> useThreading;
+
+			// What we have?
+			if (useThreading == 0) {
+				return 1;
+			} else if (useThreading == 1) {
+				threaded = true;
+				break;
+			} else if (useThreading == 2) {
+				threaded = false;
+				break;
+			}
+
+			cout << endl << endl;
+		} while (true);
+	}
+
+	// Open the database
 	if (sqlite3_open("gamebanana.sq3", &db) != SQLITE_OK) {
 		// Couldn't open!
-		cerr << "Couldn't open sqlite3 database: " << sqlite3_errmsg(db) << endl;
-
-		if (!useArg) {
-			cout << "Press any Key to exit...";
-			cin.get();
-		}
-
+		cerr << "ERROR: Couldn't open sqlite3 database: " << sqlite3_errmsg(db) << endl;
 		return 1;
 	}
 
-
-
-
-	// Settings
+	// Database settings
 	sqlite3_exec(db, "PRAGMA journal_mode=OFF", 0, 0, 0);
 	sqlite3_exec(db, "PRAGMA locking_mode=EXCLUSIVE", 0, 0, 0);
 	sqlite3_exec(db, "PRAGMA synchronous=OFF", 0, 0, 0);
 
-	// Create Tables
+	// Create tables
 	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_categories_v2` (`id` int, `name` varchar(255) NOT NULL, `game` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
 	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_maps_v2` (`id` int NOT NULL, `categories_id` int NOT NULL, `date` int NOT NULL, `mdate` int NOT NULL, `downloads` int NOT NULL, `name` varchar(255) NOT NULL, `rating` varchar(6) NOT NULL, `votes` int NOT NULL, `views` int NOT NULL, `download` varchar(128) NOT NULL, `size` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
 	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_info_v2` (`table_date` varchar(12) NOT NULL, `table_version` TINYINT NOT NULL, UNIQUE(`table_version`))", 0, 0, 0);
 	sqlite3_exec(db, "DELETE FROM `mapdl_info_v2`", 0, 0, 0);
 
-	if (!useArg) {
-		// Delete screen
-#ifdef _WIN32
-		system("cls");
-#endif
-	}
-
-
-	// Message
-	cout << "Starting to search... Please wait... " << endl << endl;
-
-
-	// Set time start
+	// Update database time info
+	char timeBuffer[128];
 	startTime = time(0);
 
 #ifdef _WIN32
@@ -171,114 +173,63 @@ int main(int argc, const char* argv[]) {
 #else
 	strftime(timeBuffer, sizeof(timeBuffer), "%Y%m%d", localtime((const time_t*)&startTime));
 #endif
-	// Update time info
 	string query = "INSERT INTO `mapdl_info_v2` (`table_date`, `table_version`) VALUES ('" + (string)timeBuffer + "', 2)";
-
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
-
-
 
 	// First get all maps and categories
 	for (int i = 1; i <= gameCount; i++) {
-		if (errors >= MAX_ERRORS) {
-			break;
-		}
-
-		// Get the Game
 		if (gameCount == 1) {
-			getGame(choice);
-		}
-		else {
-			getGame(i);
+			currentGame = getGameFromChoice(choice);
+		} else {
+			currentGame = getGameFromChoice(i);
 		}
 
-		getPage(OnGotCategorieDetails, "http://" + game + ".gamebanana.com/maps", "");
+		getPage(OnGotCategorieDetails, "http://gamebanana.com/maps/games/" + to_string(currentGame), "", false, 0);
 	}
-
 
 	// Now start searching
 	for (int i = 1; i <= gameCount; i++) {
-		if (errors >= MAX_ERRORS) {
-			break;
-		}
-
-		// Get the Game
+		// Get the current game to search maps for
 		if (gameCount == 1) {
-			getGame(choice);
+			currentGame = getGameFromChoice(choice);
+		} else {
+			currentGame = getGameFromChoice(i);
 		}
-		else {
-			getGame(i);
-		}
 
-		// Start :)
-		cout << "Start searching maps for game " << game << endl << endl;
+		cout << "INFO: Start searching maps for game " << getGameFromId(currentGame) << "; Game " << to_string(i) << "/" << to_string(gameCount) << endl << endl;
 
-
-		// Start all :)
-		getPage(OnGotMainPage, "http://" + game + ".gamebanana.com/maps", "");
-
-
-		// New line
+		// Start on the main maps page
+		getPage(OnGotMainPage, "http://gamebanana.com/maps/games/" + to_string(currentGame), "", false, 0);
 		cout << endl;
 	}
 
-
-
-	// Sleep so all is finished
+	// Sleep until all is finished
 	Sleeping(5);
 
-
-
-
-	// Show correct finish :)
-	current = allMaps - 1;
-	printStatus();
-
-
-	if (!useArg) {
-		// Close and End
-		cout << "Press any Key to exit...";
-		cin.get();
+	// Sleep until all threads are finished
+	while (runningThreads.size() > 0) {
+		Sleeping(1);
 	}
 
-
-	// Close SQLite
+	// Close database
 	sqlite3_close(db);
-
 
 	return 1;
 }
 
 
-
-
-
-
-
-
-
 //// MAIN OPERATIONS ///
 
-
-
-
-// We got the categories pages
-void OnGotMainPage(char *error, string result, string url, string data) {
-	if (errors >= MAX_ERRORS) {
-		cerr << "ERROR: Maximum of " << MAX_ERRORS << " errors reached. Maybe gamebanana isn't available..." << endl;
-		return;
-	}
-
+// We got the main maps page of a game
+bool OnGotMainPage(char *error, string result, string url, string data, int errorCount) {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "") {
 		// Pages
 		int pages = 1;
 
-
 		// Now go through each page
 		// Splitter for pages
 		vector<std::string> founds = splitString(result, "class=\"CurrentPage\">");
-
 
 		// Must be 3
 		if (founds.size() == 3) {
@@ -288,7 +239,6 @@ void OnGotMainPage(char *error, string result, string url, string data) {
 			vector<std::string> pageCount = splitString(found, "SubmissionsList\">", "</a>");
 
 			int size = pageCount.size();
-
 			if (size > 2) {
 				// Replace garbage
 				replaceString(pageCount[size - 1], "\n", "");
@@ -296,53 +246,33 @@ void OnGotMainPage(char *error, string result, string url, string data) {
 
 				// Now get the page count
 				pages = atoi(pageCount[size - 1].c_str());
-			}
-			else {
+			} else {
 				cerr << "ERROR: Couldn't get last page count. Program seems to be outdated..." << endl;
-				return;
+				exit(1);
 			}
-		}
-		else {
+		} else {
 			cerr << "ERROR: Couldn't get first page count. Program seems to be outdated..." << endl;
-			return;
+			exit(1);
 		}
 
-		cout << "INFO: Found " << pages << " pages of maps in game " << game << endl;
+		cout << "INFO: Found " << pages << " pages of maps" << endl;
 
 		// Now read all pages
-		OnGotMapsPage("", result, url, data);
-
+		OnGotMapsPage("", result, url, data, 0);
 
 		for (int i = 2; i <= pages; i++) {
-			if (errors >= MAX_ERRORS) {
-				break;
-			}
-
-			// Save int
-			stringstream ss;
-			ss << i;
-
-			getPage(OnGotMapsPage, url + "?vl[page]=" + ss.str() + "&mid=SubmissionsList", data);
+			getPage(OnGotMapsPage, url + "?vl[page]=" + to_string(i) + "&mid=SubmissionsList", data, false, 0);
 		}
+	} else {
+		cerr << "ERROR: Error on loading game main page: " << error << endl;
+		return false;
 	}
-	else {
-		errors++;
-		getPage(OnGotMainPage, url, data);
-	}
+	return true;
 }
 
 
-
-
-
-
 // Open a new Page
-void OnGotMapsPage(char *error, string result, string url, string data) {
-	if (errors >= MAX_ERRORS) {
-		cerr << "ERROR: Maximum of " << MAX_ERRORS <<" errors reached. Maybe gamebanana isn't available..." << endl;
-		return;
-	}
-
+bool OnGotMapsPage(char *error, string result, string url, string data, int errorCount) {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "") {
 		// Splitter for Maps
@@ -365,39 +295,32 @@ void OnGotMapsPage(char *error, string result, string url, string data) {
 					replaceString(idSplit[1], "<br>", "");
 
 					data = idSplit[1];
-					cout << "INFO: Found map with id " << data << endl;
-				}
-				else {
+				} else {
 					cerr << "ERROR: Couldn't get mapID split. Program seems to be outdated..." << endl;
-					return;
+					exit(1);
 				}
 
-				getPageMultiThread(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=catid,date,mdate,downloads,name,rating,votes,views,Downloadable().sFileUrl(),Downloadable().nGetFilesize()", data);
+				getPage(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=catid,date,mdate,downloads,name,rating,votes,views,Downloadable().sFileUrl(),Downloadable().nGetFilesize()", data, true, 0);
 			}
-		}
-		else {
+		} else {
 			cerr << "ERROR: Couldn't get maps head. Programm seems to be outdated..." << endl;
-			return;
+			exit(1);
 		}
+	} else {
+		cerr << "ERROR: Error on loading maps page: " << error << endl;
+
+		if (errorCount > 20) {
+			cerr << "ERROR: Found more then 20 errors on url " << url << ". Skipping..." << endl;
+			return true;
+		}
+		return false;
 	}
-	else {
-		errors++;
-		getPage(OnGotMapsPage, url, data);
-	}
+	return true;
 }
 
 
-
-
-
-
 // Retrieve Map Details
-void OnGotMapDetails(char *error, string result, string url, string data) {
-	if (errors >= MAX_ERRORS) {
-		cerr << "ERROR: Maximum of " << MAX_ERRORS << " errors reached. Maybe gamebanana isn't available..." << endl;
-		return;
-	}
-
+bool OnGotMapDetails(char *error, string result, string url, string data, int errorCount) {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "") {
 		// Read information of the map
@@ -406,7 +329,7 @@ void OnGotMapDetails(char *error, string result, string url, string data) {
 
 		if (!reader.parse(result, root) && root.size() == 1) {
 			cerr << "ERROR: Couldn't read map information. Program seems to be outdated..." << endl;
-			return;
+			exit(1);
 		}
 
 		// Check all information
@@ -424,8 +347,7 @@ void OnGotMapDetails(char *error, string result, string url, string data) {
 			string download = "";
 			float fileSize = 0.0;
 
-
-			// Check if root have valid data
+			// Check if root has valid data
 			if (root[0].isInt()) {
 				categorie = to_string(root[0].asInt());
 			}
@@ -473,19 +395,15 @@ void OnGotMapDetails(char *error, string result, string url, string data) {
 #else
 			sprintf(fileSizeString, "%.2f B", fileSize);
 #endif
-
 			if (fileSize > 1024.0) {
 				fileSize /= 1024.0;
-
 #ifdef _WIN32
 				sprintf_s(fileSizeString, "%.2f KB", fileSize);
 #else
 				sprintf(fileSizeString, "%.2f KB", fileSize);
 #endif
-
 				if (fileSize > 1024.0) {
 					fileSize /= 1024.0;
-
 #ifdef _WIN32
 					sprintf_s(fileSizeString, "%.2f MB", fileSize);
 #else
@@ -494,36 +412,30 @@ void OnGotMapDetails(char *error, string result, string url, string data) {
 				}
 			}
 
-
 			// Update and print the current status
 			printStatus();
 
-
-			// Sqlite operation in thread
-			thread t1(insertMap, data, categorie, date, mdate, downloads, name, rating, votes, views, download, fileSizeString);
-			t1.join();
-		}
-		else {
+			// Insert the map
+			insertMap(data, categorie, date, mdate, downloads, name, rating, votes, views, download, fileSizeString);
+		} else {
 			cerr << "ERROR: Couldn't get map information. Program seems to be outdated..." << endl;
-
-			return;
+			exit(1);
 		}
+	} else {
+		cerr << "ERROR: Error on loading map details: " << error << endl;
+
+		if (errorCount > 20) {
+			cerr << "ERROR: Found more then 20 errors on url " << url << ". Skipping..." << endl;
+			return true;
+		}
+		return false;
 	}
-	else {
-		errors++;
-		getPageMultiThread(OnGotMapDetails, url, data);
-	}
+	return true;
 }
 
 
-
 // Get Information about categories and maps
-void OnGotCategorieDetails(char *error, string result, string url, string data) {
-	if (errors >= MAX_ERRORS) {
-		cerr << "ERROR: Maximum of " << MAX_ERRORS << " errors reached. Maybe gamebanana isn't available..." << endl;
-		exit(1);
-	}
-
+bool OnGotCategorieDetails(char *error, string result, string url, string data, int errorCount) {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "") {
 		// Splitter for categories
@@ -551,10 +463,9 @@ void OnGotCategorieDetails(char *error, string result, string url, string data) 
 					exit(1);
 				}
 
-
 				// Get Map Count
 				if (mapCount.size() > 1) {
-					cout << "INFO: Found " << mapCount.size() << " categories in " << game << endl;
+					cout << "INFO: Found " << mapCount.size() << " categories in " << getGameFromId(currentGame) << endl;
 
 					// Loop for each map
 					for (unsigned int i = 1; i < mapCount.size(); i++) {
@@ -567,14 +478,11 @@ void OnGotCategorieDetails(char *error, string result, string url, string data) 
 						allMaps = allMaps + atoi(mapCount[i].c_str());
 					}
 
-					cout << "INFO: Found " << allMaps << " maps in " << game << endl;
-				}
-				else {
+					cout << "INFO: Found " << allMaps << " maps in " << getGameFromId(currentGame) << endl;
+				} else {
 					cout << "ERROR: Couldn't get pre maps count. Program seems to be outdated..." << endl;
 					exit(1);
 				}
-
-
 
 				// Loop for result
 				for (unsigned int i = 1; i < linkName.size(); i++) {
@@ -586,180 +494,182 @@ void OnGotCategorieDetails(char *error, string result, string url, string data) 
 						if (realCatId.size() == 2) {
 							// Insert new Typ
 							insertCategorie(realCatId[0], realCatId[1]);
-							cout << "INFO: Found category " << realCatId[1] << " with ID " << realCatId[0] << " in " << game << endl;
-						}
-						else {
+							cout << "INFO: Found category " << realCatId[1] << " with ID " << realCatId[0] << endl;
+						} else {
 							cerr << "ERROR: Couldn't get real catid. Program seems to be outdated..." << endl;
 							exit(1);
 						}
-					}
-					else {
+					} else {
 						cerr << "ERROR: Couldn't get real link name. Program seems to be outdated..." << endl;
 						exit(1);
 					}
 				}
-			}
-			else {
+			} else {
 				cerr << "ERROR: Number of categories should be even. Program seems to be outdated..." << endl;
 				exit(1);
 			}
-		}
-		else {
+		} else {
 			cerr << "ERROR: Couldn't get categorie head. Program seems to be outdated..." << endl;
 			exit(1);
 		}
+	} else {
+		cerr << "ERROR: Error on loading game category details: " << error << endl;
+		return false;
 	}
-	else {
-		errors++;
-		getPage(OnGotCategorieDetails, url, data);
-	}
+	return true;
 }
-
-
-
 
 // Print current status
 void printStatus() {
+	char cPercent[12];
+	char cTime[12];
+
+	threadMutex.lock();
+
 	current++;
 
-	if (threadMutex.try_lock()) {
-		char cPercent[12];
-		char cTime[12];
+	float fPercent = ((float)current / (float)allMaps) * 100.0f;
+	int percent = (int)fPercent;
+	if (percent > 99) {
+		percent = 100;
+	}
 
-		float fPercent = ((float)current / (float)allMaps) * 100.0f;
-		int percent = (int)fPercent;
-
-		if (percent > 99) {
-			percent = 100;
-		}
-
-		string code((percent / 10) + 1, '|');
+	string code((percent / 10) + 1, '|');
 
 #ifdef _WIN32
-		sprintf_s(cPercent, "%.2f", fPercent);
-		sprintf_s(cTime, "%.1f", ((((float)current)) / ((float)(time(0) - startTime))));
+	sprintf_s(cPercent, "%.2f", fPercent);
+	sprintf_s(cTime, "%.1f", ((((float)current)) / ((float)(time(0) - startTime))));
 #else
-		sprintf(cPercent, "%.2f", fPercent);
-		sprintf(cTime, "%.1f", ((((float)current)) / ((float)(time(0) - startTime))));
+	sprintf(cPercent, "%.2f", fPercent);
+	sprintf(cTime, "%.1f", ((((float)current)) / ((float)(time(0) - startTime))));
 #endif
+	cout << code << " - " << (string)cPercent << "% (" << current << " / " << allMaps << ") - time: " << (time(0) - startTime) << "s, left: " << (int)((allMaps - current) / ((((float)current)) / ((float)(time(0) - startTime)))) << "s (" << cTime << " Maps/s)" << endl;
 
-
-		cout << code << " - " << (string)cPercent << "% (" << current << " / " << allMaps << ") - time: " << (time(0) - startTime) << "s, left: " << (int)((allMaps - current) / ((((float)current)) / ((float)(time(0) - startTime)))) << "s (" << cTime << " Maps/s)" << endl;
-
-
-		threadMutex.unlock();
-	}
+	threadMutex.unlock();
 }
 
-
-
-void getGame(int gameInt) {
+int getGameFromChoice(int arg) {
 	// What we have?
-	switch (gameInt) {
-	case 1:
-	{
-		game = "tf2";
-
-		break;
-	}
-	case 2:
-	{
-		game = "dods";
-
-		break;
-	}
-	case 3:
-	{
-		game = "hl2dm";
-
-		break;
-	}
-	case 4:
-	{
-		game = "css";
-
-		break;
-	}
-	case 5:
-	{
-		game = "csgo";
-
-		break;
-	}
+	switch (arg) {
+		case 1:
+		{
+			return 297;
+		}
+		case 2:
+		{
+			return 10;
+		}
+		case 3:
+		{
+			return 5;
+		}
+		case 4:
+		{
+			return 2;
+		}
+		default:
+		{
+			return 4660;
+		}
 	}
 }
 
-
+string getGameFromId(int id) {
+	// What we have?
+	switch (id) {
+		case 297:
+		{
+			return "tf2";
+		}
+		case 10:
+		{
+			return "dods";
+		}
+		case 5:
+		{
+			return "hl2dm";
+		}
+		case 2:
+		{
+			return "css";
+		}
+		default:
+		{
+			return "csgo";
+		}
+	}
+}
 
 
 //// CURL OPERATIONS ///
 
-
-
 // Get Page joinable
-void getPage(callback function, string page, string data) {
-	thread t1(getPageThread, function, page, data);
+void getPage(callback function, string page, string data, bool threading, int errorCount) {
+	if (threading && threaded) {
+		thread pageThread(getPageThread, function, page, data, errorCount);
 
-	t1.join();
+		threadMutex.lock();
+		runningThreads.push_back(&pageThread);
+		threadMutex.unlock();
+		pageThread.detach();
+	} else {
+		getPageThread(function, page, data, errorCount);
+	}
 }
-
-
-// Get Page detached
-void getPageMultiThread(callback function, string page, string data) {
-	thread t1(getPageThread, function, page, data);
-
-	t1.detach();
-}
-
-
 
 // Thread for curl
-void getPageThread(callback function, string page, string data) {
-	// Error
-	char ebuf[CURL_ERROR_SIZE];
+void getPageThread(callback function, string page, string data, int errorCount) {
+	bool validResponse = false;
+	while (!validResponse) {
+		// Error buffer
+		char ebuf[CURL_ERROR_SIZE];
 
-	// Response
-	std::ostringstream stream;
+		// Response
+		std::ostringstream stream;
 
-	// Init Curl
-	CURL *curl = curl_easy_init();
+		// Init Curl
+		CURL *curl = curl_easy_init();
+		if (curl != NULL) {
+			// Configurate Curl
+			curl_easy_setopt(curl, CURLOPT_URL, page.c_str());
+			curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+			curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, ebuf);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60);
+			curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+			curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 60);
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &stream);
 
+			// Perform Curl
+			CURLcode res = curl_easy_perform(curl);
 
-	if (curl != NULL) {
-		// Configurate Curl
-		curl_easy_setopt(curl, CURLOPT_URL, page.c_str());
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, ebuf);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &stream);
+			// Everything good :)
+			if (res == CURLE_OK) {
+				validResponse = function("", stream.str(), page, data, errorCount);
+			} else {
+				// Error ):
+				validResponse = function(ebuf, stream.str(), page, data, errorCount);
+			}
 
-		// Perform Curl
-		CURLcode res = curl_easy_perform(curl);
-
-		// Everything good :)
-		if (res == CURLE_OK) {
-			function("", stream.str(), page, data);
+			// Clean Curl
+			curl_easy_cleanup(curl);
+			continue;
 		}
-		else {
-			// Error ):
-			function(ebuf, stream.str(), page, data);
-		}
 
-		// Clean Curl
-		curl_easy_cleanup(curl);
-
-		// Stop
-		return;
+		// Other error
+		validResponse = function("", "", page, data, errorCount);
 	}
 
-	// Other error
-	function("", "", page, data);
+	// Remove thread from running threads
+	threadMutex.lock();
+	for (std::vector<thread*>::iterator it = runningThreads.begin(); it != runningThreads.end(); ++it) {
+		if ((*it)->get_id() == this_thread::get_id()) {
+			runningThreads.erase(it);
+			break;
+		}
+	}
+	threadMutex.unlock();
 }
-
-
 
 // Curl receive data -> write to buffer
 size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp) {
@@ -772,19 +682,14 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp) {
 }
 
 
-
 //// SQLITE3 OPERATIONS ///
-
-
 
 // Insert a new Categorie
 void insertCategorie(string id, string name) {
-	string query = "INSERT OR IGNORE INTO `mapdl_categories_v2` (`id`, `name`, `game`) VALUES ('" + id + "', '" + name + "', '" + game + "')";
-
+	string query = "INSERT OR IGNORE INTO `mapdl_categories_v2` (`id`, `name`, `game`) VALUES ('" + id + "', '" + name + "', '" + getGameFromId(currentGame) + "')";
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 
-	query = "UPDATE `mapdl_categories_v2` SET `name` = '" + name + "', `game` = '" + game + "' WHERE `id` = " + id;
-
+	query = "UPDATE `mapdl_categories_v2` SET `name` = '" + name + "', `game` = '" + getGameFromId(currentGame) + "' WHERE `id` = " + id;
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 }
 
@@ -792,24 +697,19 @@ void insertCategorie(string id, string name) {
 // Insert a new Map
 void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views, string download, string size) {
 	string query = "INSERT OR IGNORE INTO `mapdl_maps_v2` (`id`, `categories_id`, `date`, `mdate`, `downloads`, `name`, `rating`, `votes`, `views`, `download`, `size`) VALUES (" + id + ", " + categorie + ", " + date + ", " + mdate + ", " + downloads + ", '" + name + "', '" + rating + "', " + votes + ", " + views + ", '" + download + "', '" + size + "')";
-
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 
 	query = "UPDATE `mapdl_maps_v2` SET `categories_id` = " + categorie + ", `date` = " + date + ", `mdate` = " + mdate + ", `downloads` = " + downloads + ", `name` = '" + name + "', `rating` = '" + rating + "', `votes` = " + votes + ", `views` = " + views + ", `download` = '" + download + "', `size` = '" + size + "' WHERE `id` = " + id;
-
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 }
 
 
-
 //// STRING OPERATIONS ///
-
 
 // Replace a string with a new str
 void replaceString(string &str, const string& oldStr, const string& newStr) {
 	// pos
 	size_t pos = 0;
-
 
 	// Next item?
 	while ((pos = str.find(oldStr, pos)) != std::string::npos) {
@@ -818,9 +718,6 @@ void replaceString(string &str, const string& oldStr, const string& newStr) {
 		pos += newStr.length();
 	}
 }
-
-
-
 
 // Split a string with start and end
 vector<std::string> splitString(const string &str, const string& search, const string& to) {
@@ -832,7 +729,6 @@ vector<std::string> splitString(const string &str, const string& search, const s
 
 	// Also add first item
 	bool first = true;
-
 
 	// Next item?
 	while ((pos = str.find(search, pos)) != std::string::npos) {
@@ -855,8 +751,7 @@ vector<std::string> splitString(const string &str, const string& search, const s
 			replaceString(found, to, "");
 
 			splits.push_back(found);
-		}
-		else {
+		} else {
 			string found = str.substr(pos, string::npos);
 
 			// Replace start and end
@@ -871,7 +766,6 @@ vector<std::string> splitString(const string &str, const string& search, const s
 		// not first anymore
 		first = false;
 	}
-
 
 	// Return found items
 	return splits;

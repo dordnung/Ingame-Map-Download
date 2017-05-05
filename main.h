@@ -23,7 +23,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>
  */
 
-// c++ libs
 #include <stdlib.h>
 #include <cstdlib>
 #include <sstream>
@@ -34,70 +33,50 @@
 #include <thread>
 #include <mutex>
 #include <ctime>
-
-// Curl
 #include <curl/curl.h>
-
-// Sqlite
 #include <sqlite3.h>
-
-// Json
 #include "json/json.h"
 
 
-
-
-// Sleeping
+// Sleeping for different OSs
 #ifdef _WIN32
+#include <windows.h>
 #define Sleeping(seconds) Sleep(seconds*1000);
 #else
 #include <unistd.h>
 #define Sleeping(seconds) sleep(seconds);
 #endif
 
-
-
-
 // Using std
 using namespace std;
 
 
 // Thread for Curl Performances
-typedef void(*callback)(char*, string, string, string);
-
-
-
-
-
+typedef bool(*callback)(char*, string, string, string, int);
 
 // Main Methods
-void OnGotMainPage(char *error, string result, string url, string data);
-void OnGotMapsPage(char *error, string result, string url, string data);
-void OnGotMapDetails(char *error, string result, string url, string data);
-void OnGotCategorieDetails(char *error, string result, string url, string data);
+bool OnGotMainPage(char *error, string result, string url, string data, int errorCount);
+bool OnGotMapsPage(char *error, string result, string url, string data, int errorCount);
+bool OnGotMapDetails(char *error, string result, string url, string data, int errorCount);
+bool OnGotCategorieDetails(char *error, string result, string url, string data, int errorCount);
 
 // Print current status
 void printStatus();
 
-// Int to game
-void getGame(int gameInt);
-
-
+// Int to game and game to id
+int getGameFromChoice(int arg);
+string getGameFromId(int id);
 
 // Curl
-void getPage(callback function, string page, string data);
-void getPageMultiThread(callback function, string page, string data);
-void getPageThread(callback function, string page, string data);
+void getPage(callback function, string page, string data, bool threading, int errorCount);
+void getPageThread(callback function, string page, string data, int errorCount);
 
 size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
-
-
 
 
 // SQLite 3
 void insertCategorie(string id, string name);
 void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views, string download, string size);
-
 
 
 // String operations
