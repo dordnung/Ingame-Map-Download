@@ -653,11 +653,14 @@ void getPageThread(callback function, string page, string data, int errorCount) 
 
 			// Clean Curl
 			curl_easy_cleanup(curl);
+			
+			errorCount++;
 			continue;
 		}
 
 		// Other error
 		validResponse = function("", "", page, data, errorCount);
+		errorCount++;
 	}
 
 	// Remove thread from running threads
