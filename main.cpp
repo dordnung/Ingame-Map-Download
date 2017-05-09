@@ -210,6 +210,11 @@ int main(int argc, const char *argv[]) {
 	while (runningThreads.size() > 0) {
 		Sleeping(1);
 	}
+	
+	// Show correct finish :)
+	current = allMaps - 1;
+	printStatus();
+	cout << "INFO: Finished!" << endl;
 
 	// Close database
 	sqlite3_close(db);

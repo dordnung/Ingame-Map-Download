@@ -1,13 +1,13 @@
 /**
  * -----------------------------------------------------
  * File			mapdownload.sp
- * Authors		David <popoklopsi> Ordnung
+ * Authors		David Ordnung
  * License		GPLv3
- * Web			http://popoklopsi.de
+ * Web			http://dordnung.de
  * -----------------------------------------------------
  * 
  * 
- * Copyright (C) 2013-2014 David <popoklopsi> Ordnung
+ * Copyright (C) 2013-2017 David Ordnung
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,9 +64,9 @@
 
 
 // URLs
-#define UPDATE_URL_PLUGIN "http://popoklopsi.de/mapdl/update.txt"
-#define UPDATE_URL_DB "http://popoklopsi.de/mapdl/v2/gamebanana.sq3"
-#define URL_MOTD "http://popoklopsi.de/mapdl/motd.php"
+#define UPDATE_URL_PLUGIN "http://dordnung.de/mapdl/update.txt"
+#define UPDATE_URL_DB "http://dordnung.de/mapdl/v2/gamebanana.sq3"
+#define URL_MOTD "http://dordnung.de/mapdl/motd.php"
 
 
 // Client menu store defines
@@ -133,7 +133,7 @@ new g_Downloads[20][DownloadInfo];
 
 
 // Global strings
-new String:g_sVersion[] = "2.2.1";
+new String:g_sVersion[] = "2.2.2";
 new String:g_sModes[][] = {"Downloading", "Uploading", "Compressing"};
 new String:g_sGameSearch[64];
 new String:g_sClientConfig[MAXPLAYERS + 1][256];
@@ -335,9 +335,9 @@ new String:g_sSearchCustomMaps[] = "SELECT `mapdl_custom_maps`.`file`, `mapdl_cu
 public Plugin:myinfo =
 {
 	name = "Ingame Map Download",
-	author = "Popoklopsi",
+	author = "dordnung",
 	version = g_sVersion,
-	description = "Allows admins to download Maps ingame"
+	description = "Allows admins to download maps ingame"
 };
 
 
@@ -378,7 +378,7 @@ public OnPluginStart()
 
 
 	// Public Cvar
-	AutoExecConfig_CreateConVar("mapdownload_version", g_sVersion, "Ingame Map Download Version", FCVAR_PLUGIN | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
+	AutoExecConfig_CreateConVar("mapdownload_version", g_sVersion, "Ingame Map Download Version", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 
 	// Set Cvars
 	g_hCommand = AutoExecConfig_CreateConVar("mapdownload_command", "sm_mapdl", "Command to open Map Download menu. Append prefix 'sm_' for chat use!");
@@ -392,7 +392,7 @@ public OnPluginStart()
 	g_hSearch = AutoExecConfig_CreateConVar("mapdownload_search", "1", "1 = Search searchmask within a string, 0 = Search excact mask");
 	g_hMapCycle = AutoExecConfig_CreateConVar("mapdownload_mapcycle", "1", "1 = Write downloaded map in mapcycle.txt, 0 = Off");
 	g_hNotice = AutoExecConfig_CreateConVar("mapdownload_notice", "1", "1 = Notice admins on server that Map Download runs, 0 = Off");
-	g_hDownloadList = AutoExecConfig_CreateConVar("mapdownload_downloadlist", "1", "1 = Add custom files of map to intern downloadlist, 0 = Off");
+	g_hDownloadList = AutoExecConfig_CreateConVar("mapdownload_downloadlist", "1", "1 = Add custom files of a map into an intern downloadlist, all items whill be loaded when a player will connect the first time, 0 = Off");
 	g_hUpdate = AutoExecConfig_CreateConVar("mapdownload_update_plugin", "1", "1 = Auto update plugin with God Tony's autoupdater, 0 = Off");
 	g_hUpdateDB = AutoExecConfig_CreateConVar("mapdownload_update_database", "1", "1 = Auto download gamebanana database on plugin start, 0 = Off");
 	g_hFTP = AutoExecConfig_CreateConVar("mapdownload_ftp", "0", "1 = Use Fast Download upload, 0 = Off");
@@ -510,7 +510,7 @@ public OnConfigsExecuted()
 	}
 
 
-	// Add Auto Updater if exit and want
+	// Add Auto Updater if exit and wanted
 	if (LibraryExists("updater") && g_bUpdate)
 	{
 		Updater_AddPlugin(UPDATE_URL_PLUGIN);
@@ -603,7 +603,6 @@ Log(String:fmt[], any:...)
 	decl String:format[1024];
 	decl String:file[PLATFORM_MAX_PATH + 1];
 	decl String:currentDate[32];
-
 
 	VFormat(format, sizeof(format), fmt, 2);
 	FormatTime(currentDate, sizeof(currentDate), "%d-%m-%y");
@@ -844,7 +843,6 @@ PreparePlugin()
 		// Path to sql file
 		BuildPath(Path_SM, path, sizeof(path), "data/sqlite/gamebanana.sq3");
 
-
 		// Download current database
 		System2_DownloadFile(PrepareDB, UPDATE_URL_DB, path);
 	}
@@ -911,15 +909,37 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
 {
 	if (finished)
 	{
-		if (!StrEqual(error, ""))
+		if (g_bUpdateDB)
 		{
-			// We couldn't update the db
-			LogError("Attention: Couldn't update database. Error: %s", error);
-		}
-		else
-		{
-			// Notice update
-			LogMessage("Updated gamebanana Database succesfully!");
+			if (!StrEqual(error, ""))
+			{
+				// We couldn't update the db
+				LogError("Attention: Couldn't update database. Error: %s", error);
+
+				if (g_iDatabaseRetries > g_iDatabaseTries)
+				{
+					g_iDatabaseTries++;
+
+					// Retrie
+					decl String:path[PLATFORM_MAX_PATH + 1];
+
+					// Path to sql file
+					BuildPath(Path_SM, path, sizeof(path), "data/sqlite/gamebanana.sq3");
+
+					// Download current database
+					System2_DownloadFile(PrepareDB, UPDATE_URL_DB, path);
+					return;
+				} 
+				else
+				{
+					LogError("Attention: Couldn't update database after %d retries. Try to restart your server", g_iDatabaseTries);
+				}
+			}
+			else
+			{
+				// Notice update
+				LogMessage("Updated gamebanana Database succesfully!");
+			}
 		}
 
 
