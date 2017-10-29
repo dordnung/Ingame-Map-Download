@@ -65,7 +65,7 @@
 
 // URLs
 #define UPDATE_URL_PLUGIN "http://dordnung.de/mapdl/update.txt"
-#define UPDATE_URL_DB "http://dordnung.de/mapdl/v2/gamebanana.sq3"
+#define UPDATE_URL_DB "http://dordnung.de/mapdl/gamebanana.sq3"
 #define URL_MOTD "http://dordnung.de/mapdl/motd.php"
 
 
@@ -914,10 +914,11 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
 			if (!StrEqual(error, ""))
 			{
 				// We couldn't update the db
-				LogError("Attention: Couldn't update database. Error: %s", error);
-
 				if (g_iDatabaseRetries > g_iDatabaseTries)
 				{
+					// We couldn't update the db
+					LogError("Attention: Couldn't update database. Error: '%s'. Trying again...", error);
+
 					g_iDatabaseTries++;
 
 					// Retrie
@@ -929,10 +930,10 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
 					// Download current database
 					System2_DownloadFile(PrepareDB, UPDATE_URL_DB, path);
 					return;
-				} 
+				}
 				else
 				{
-					LogError("Attention: Couldn't update database after %d retries. Try to restart your server", g_iDatabaseTries);
+					LogError("Attention: Couldn't update database after %d retries. Error: '%s'. Try to restart your server", g_iDatabaseTries, error);
 				}
 			}
 			else
@@ -1327,7 +1328,7 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
 				EscapeString(part, '%', '%', partBuffer, sizeof(partBuffer));
 
 				// Check valid
-				if ((StrEndsWith(partBuffer, ".bz2") || StrEndsWith(partBuffer, ".rar") || StrEndsWith(partBuffer, ".zip") || StrEndsWith(partBuffer, ".7z")) && !StrEndsWith(partBuffer, ".txt.bz2"))
+				if ((StrEndsWith(partBuffer, ".bsp") || StrEndsWith(partBuffer, ".bz2") || StrEndsWith(partBuffer, ".rar") || StrEndsWith(partBuffer, ".zip") || StrEndsWith(partBuffer, ".7z")) && !StrEndsWith(partBuffer, ".txt.bz2"))
 				{
 					// Insert Map
 					Format(query, sizeof(query), g_InsertCustomMaps, partBuffer, name);
@@ -1879,7 +1880,7 @@ public Action:DownloadMapDirect(client, args)
 			GetCmdArgString(url, sizeof(url));
 
 			// Check valid
-			if ((StrEndsWith(url, ".bz2") || StrEndsWith(url, ".rar") || StrEndsWith(url, ".zip") || StrEndsWith(url, ".7z")) && !StrEndsWith(url, ".txt.bz2"))
+			if ((StrEndsWith(url, ".bsp") || StrEndsWith(url, ".bz2") || StrEndsWith(url, ".rar") || StrEndsWith(url, ".zip") || StrEndsWith(url, ".7z")) && !StrEndsWith(url, ".txt.bz2"))
 			{
 				// Get the name of the map
 				GetFileName(url, fileName, sizeof(fileName));
@@ -2863,7 +2864,6 @@ StartDownloadingMap(client, const String:id[], const String:map[], const String:
 	Format(savePath, sizeof(savePath), "%s/%s", g_sPluginPath, savePath);
 
 
-
 	// Init download
 	g_Downloads[g_iTotalDownloads][DL_CLIENT] = client;
 	g_Downloads[g_iTotalDownloads][DL_FINISH] = 0;
@@ -2886,8 +2886,6 @@ StartDownloadingMap(client, const String:id[], const String:map[], const String:
 	strcopy(g_Downloads[g_iTotalDownloads][DL_ID], 32, id);
 	strcopy(g_Downloads[g_iTotalDownloads][DL_SAVE], PLATFORM_MAX_PATH+1, savePath);
 
-	
-	
 
 	// File array
 	if (g_Downloads[g_iTotalDownloads][DL_FILES] != INVALID_HANDLE)
@@ -2897,7 +2895,6 @@ StartDownloadingMap(client, const String:id[], const String:map[], const String:
 	
 	// Create new Array
 	g_Downloads[g_iTotalDownloads][DL_FILES] = CreateArray(PLATFORM_MAX_PATH + 1);
-
 
 
 	// FTP File array
@@ -2910,12 +2907,9 @@ StartDownloadingMap(client, const String:id[], const String:map[], const String:
 	g_Downloads[g_iTotalDownloads][DL_FTPFILES] = CreateArray(PLATFORM_MAX_PATH+  1);
 
 
-
 	// Mode
 	g_Downloads[g_iTotalDownloads][DL_MODE] = MODUS_DOWNLOAD;
 
-	
-	
 	// Increase total downloads
 	g_iTotalDownloads++;
 
@@ -2970,9 +2964,22 @@ public OnDownloadUpdate(bool:finished, const String:error[], Float:dltotal, Floa
 			// Create path to extract to, this is the unique path
 			Format(extractPath, sizeof(extractPath), "%s/%s", g_sPluginPath, g_Downloads[g_iCurrentDownload][DL_ID]);
 
-			
-			// Now extract it
-			System2_ExtractArchive(OnExtracted, g_Downloads[g_iCurrentDownload][DL_SAVE], extractPath);
+			// Only extract it if it's not a .bsp file
+			if (!StrEndsWith(g_Downloads[g_iCurrentDownload][DL_SAVE], ".bsp"))
+			{
+				// Now extract it
+				System2_ExtractArchive(OnExtracted, g_Downloads[g_iCurrentDownload][DL_SAVE], extractPath);
+			}
+			else
+			{
+				decl String:fileName[128];
+
+				// Move .bsp files directly to the extract path
+				GetFileName(g_Downloads[g_iCurrentDownload][DL_SAVE], fileName, sizeof(fileName));
+				Format(extractPath, sizeof(extractPath), "%s/%s", extractPath, fileName);
+
+				System2_CopyFile(CopyFinished, g_Downloads[g_iCurrentDownload][DL_SAVE], extractPath, true);
+			}
 		}
 		else
 		{
@@ -3283,7 +3290,7 @@ SearchForFolders(String:path[], found)
 					Format(content, sizeof(content), "maps/%s", content);
 
 					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
-					System2_CopyFile(CopyFinished, newPath, content);
+					System2_CopyFile(CopyFinished, newPath, content, false);
 
 					// We found a nav
 					found = found + 2;
@@ -3302,7 +3309,7 @@ SearchForFolders(String:path[], found)
 						Format(content, sizeof(content), "maps/%s", content);
 
 						PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
-						System2_CopyFile(CopyFinished, newPath, content);
+						System2_CopyFile(CopyFinished, newPath, content, false);
 					}
 				}
 
@@ -3320,7 +3327,7 @@ SearchForFolders(String:path[], found)
 					Format(buff, sizeof(buff), "maps/%s", content);
 
 					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], buff);
-					System2_CopyFile(CopyFinished, newPath, buff);
+					System2_CopyFile(CopyFinished, newPath, buff, false);
 
 
 					
@@ -3491,7 +3498,7 @@ CopyToGameDir(const String:path[], const String:cur[])
 				else
 				{
 					// If file -> copy file to current dir
-					System2_CopyFile(CopyFinished, buffer, file);
+					System2_CopyFile(CopyFinished, buffer, file, false);
 
 					// Update file count
 					PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], buffer);
@@ -3510,12 +3517,16 @@ CopyToGameDir(const String:path[], const String:cur[])
 
 
 // Copy finished
-public CopyFinished(bool:success, String:from[], String:to[])
+public CopyFinished(bool:success, String:from[], String:to[], any:extractOnFinish)
 {
 	// We only log any errors
 	if (!success)
 	{
 		LogError("Couldn't copy file %s to %s!", from, to);
+	}
+	else if (extractOnFinish)
+	{
+		OnExtracted("", 0, CMD_SUCCESS);
 	}
 }
 
