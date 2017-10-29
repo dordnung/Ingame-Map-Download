@@ -1,13 +1,13 @@
 /*
  * -----------------------------------------------------
- * File        main.h
- * Authors     David <popoklopsi> Ordnung
- * License     GPLv3
- * Web         http://popoklopsi.de
+ * File         main.h
+ * Authors      David Ordnung
+ * License      GPLv3
+ * Web          http://dordnung.de
  * -----------------------------------------------------
  *
  * Gamebanana Maplister
- * Copyright (C) 2012-2015 David <popoklopsi> Ordnung
+ * Copyright (C) 2013-2017 David Ordnung
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,12 +1,12 @@
 # -----------------------------------------------------
 # File        Makefile
-# Authors     David <popoklopsi> Ordnung
+# Authors     David Ordnung
 # License     GPLv3
-# Web         http://popoklopsi.de
+# Web         http://dordnung.de
 # -----------------------------------------------------
 # 
 # Gamebanana Maplister Makefile
-# Copyright (C) 2012-2014 David <popoklopsi> Ordnung
+# Copyright (C) 2013-2017 David Ordnung
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
