@@ -64,9 +64,9 @@
 
 
 // URLs
-#define UPDATE_URL_PLUGIN "http://dordnung.de/mapdl/update.txt"
-#define UPDATE_URL_DB "http://dordnung.de/mapdl/gamebanana.sq3"
-#define URL_MOTD "http://dordnung.de/mapdl/motd.php"
+#define UPDATE_URL_PLUGIN "http://dordnung.de/sourcemod/mapdl/update.txt"
+#define UPDATE_URL_DB "http://dordnung.de/sourcemod/mapdl/gamebanana.sq3"
+#define URL_MOTD "http://dordnung.de/sourcemod/mapdl/motd.php"
 
 
 // Client menu store defines
