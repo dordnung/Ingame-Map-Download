@@ -3157,10 +3157,16 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 								// If not in file already, add it
 								if (!duplicate)
 								{
-									WriteFileLine(file, content);
-
 									// Add to download table
 									AddFileToDownloadsTable(content);
+
+									// Add a carriage return as line ending for WindowsOS
+									if (System2_GetOS() == OS_WINDOWS)
+									{
+										Format(content, sizeof(content), "%s\r", content);
+									}
+
+									WriteFileLine(file, content);
 								}
 							}
 						}
