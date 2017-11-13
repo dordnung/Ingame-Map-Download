@@ -3157,10 +3157,16 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 								// If not in file already, add it
 								if (!duplicate)
 								{
-									WriteFileLine(file, content);
-
 									// Add to download table
 									AddFileToDownloadsTable(content);
+
+									// Add a carriage return as line ending for WindowsOS
+									if (System2_GetOS() == OS_WINDOWS)
+									{
+										StrCat(content, sizeof(content), "\r");
+									}
+
+									WriteFileLine(file, content);
 								}
 							}
 						}
@@ -3395,6 +3401,11 @@ SearchForFolders(String:path[], found)
 							// If not in mapcycle, add it
 							if (!duplicate)
 							{
+								// Add a carriage return as line ending for WindowsOS
+								if (System2_GetOS() == OS_WINDOWS)
+								{
+									StrCat(content, sizeof(content), "\r");
+								}
 								WriteFileLine(mapcycle, content);
 							}
 
