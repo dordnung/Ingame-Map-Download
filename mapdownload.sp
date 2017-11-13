@@ -3163,7 +3163,7 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 									// Add a carriage return as line ending for WindowsOS
 									if (System2_GetOS() == OS_WINDOWS)
 									{
-										Format(content, sizeof(content), "%s\r", content);
+										StrCat(content, sizeof(content), "\r");
 									}
 
 									WriteFileLine(file, content);
@@ -3401,6 +3401,11 @@ SearchForFolders(String:path[], found)
 							// If not in mapcycle, add it
 							if (!duplicate)
 							{
+								// Add a carriage return as line ending for WindowsOS
+								if (System2_GetOS() == OS_WINDOWS)
+								{
+									StrCat(content, sizeof(content), "\r");
+								}
 								WriteFileLine(mapcycle, content);
 							}
 
