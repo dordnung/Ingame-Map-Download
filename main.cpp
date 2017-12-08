@@ -157,7 +157,7 @@ int main(int argc, const char *argv[]) {
 
 	// Create tables
 	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_categories_v2` (`id` int, `name` varchar(255) NOT NULL, `game` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
-	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_maps_v2` (`id` int NOT NULL, `categories_id` int NOT NULL, `date` int NOT NULL, `mdate` int NOT NULL, `downloads` int NOT NULL, `name` varchar(255) NOT NULL, `rating` varchar(6) NOT NULL, `votes` int NOT NULL, `views` int NOT NULL, `download` varchar(128) NOT NULL, `size` varchar(24) NOT NULL, UNIQUE(`id`))", 0, 0, 0);
+	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_maps_v2` (`id` int NOT NULL, `categories_id` int NOT NULL, `date` int NOT NULL, `mdate` int NOT NULL, `downloads` int NOT NULL, `name` varchar(255) NOT NULL, `rating` varchar(6) NOT NULL, `votes` int NOT NULL, `views` int NOT NULL, `download` varchar(128), `size` varchar(24), UNIQUE(`id`))", 0, 0, 0);
 	sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS `mapdl_info_v2` (`table_date` varchar(12) NOT NULL, `table_version` TINYINT NOT NULL, UNIQUE(`table_version`))", 0, 0, 0);
 	sqlite3_exec(db, "DELETE FROM `mapdl_info_v2`", 0, 0, 0);
 
@@ -210,7 +210,7 @@ int main(int argc, const char *argv[]) {
 	while (runningThreads.size() > 0) {
 		Sleeping(1);
 	}
-	
+
 	// Show correct finish :)
 	current = allMaps - 1;
 	printStatus();
@@ -224,219 +224,6 @@ int main(int argc, const char *argv[]) {
 
 
 //// MAIN OPERATIONS ///
-
-// We got the main maps page of a game
-bool OnGotMainPage(char *error, string result, string url, string data, int errorCount) {
-	// Valid answer?
-	if ((strcmp(error, "") == 0) && result != "") {
-		// Pages
-		int pages = 1;
-
-		// Now go through each page
-		// Splitter for pages
-		vector<std::string> founds = splitString(result, "class=\"CurrentPage\">");
-
-		// Must be 3
-		if (founds.size() == 3) {
-			string found = founds[1];
-
-			// Split for highest page
-			vector<std::string> pageCount = splitString(found, "SubmissionsList\">", "</a>");
-
-			int size = pageCount.size();
-			if (size > 2) {
-				// Replace garbage
-				replaceString(pageCount[size - 1], "\n", "");
-				replaceString(pageCount[size - 1], "\t", "");
-
-				// Now get the page count
-				pages = atoi(pageCount[size - 1].c_str());
-			} else {
-				cerr << "ERROR: Couldn't get last page count. Program seems to be outdated..." << endl;
-				exit(1);
-			}
-		} else {
-			cerr << "ERROR: Couldn't get first page count. Program seems to be outdated..." << endl;
-			exit(1);
-		}
-
-		cout << "INFO: Found " << pages << " pages of maps" << endl;
-
-		// Now read all pages
-		OnGotMapsPage("", result, url, data, 0);
-
-		for (int i = 2; i <= pages; i++) {
-			getPage(OnGotMapsPage, url + "?vl[page]=" + to_string(i) + "&mid=SubmissionsList", data, false, 0);
-		}
-	} else {
-		cerr << "ERROR: Error on loading game main page: " << error << endl;
-		return false;
-	}
-	return true;
-}
-
-
-// Open a new Page
-bool OnGotMapsPage(char *error, string result, string url, string data, int errorCount) {
-	// Valid answer?
-	if ((strcmp(error, "") == 0) && result != "") {
-		// Splitter for Maps
-		vector<std::string> founds = splitString(result, "td class=\"Preview\"", "<div");
-
-		// Must be at least 2
-		if (founds.size() > 1) {
-			cout << "INFO: Found " << founds.size() << " maps on page" << endl;
-
-			for (unsigned int i = 1; i < founds.size(); i++) {
-				string found = founds[i];
-
-				// Split for mapID
-				vector<std::string> idSplit = splitString(found, "maps/", "\">");
-
-				if (idSplit.size() == 2) {
-					// Replace garbage
-					replaceString(idSplit[1], "\n", "");
-					replaceString(idSplit[1], "\t", "");
-					replaceString(idSplit[1], "<br>", "");
-
-					data = idSplit[1];
-				} else {
-					cerr << "ERROR: Couldn't get mapID split. Program seems to be outdated..." << endl;
-					exit(1);
-				}
-
-				getPage(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=catid,date,mdate,downloads,name,rating,votes,views,Downloadable().sFileUrl(),Downloadable().nGetFilesize()", data, true, 0);
-			}
-		} else {
-			cerr << "ERROR: Couldn't get maps head. Programm seems to be outdated..." << endl;
-			exit(1);
-		}
-	} else {
-		cerr << "ERROR: Error on loading maps page: " << error << endl;
-
-		if (errorCount > 20) {
-			cerr << "ERROR: Found more then 20 errors on url " << url << ". Skipping..." << endl;
-			return true;
-		}
-		return false;
-	}
-	return true;
-}
-
-
-// Retrieve Map Details
-bool OnGotMapDetails(char *error, string result, string url, string data, int errorCount) {
-	// Valid answer?
-	if ((strcmp(error, "") == 0) && result != "") {
-		// Read information of the map
-		Json::Value root;
-		Json::Reader reader;
-
-		if (!reader.parse(result, root) && root.size() == 1) {
-			cerr << "ERROR: Couldn't read map information. Program seems to be outdated..." << endl;
-			exit(1);
-		}
-
-		// Check all information
-		if (root.size() == 10) {
-			// We have to temp. save the values, so we can check for valid data
-			char fileSizeString[32];
-			string categorie = "";
-			string date = "";
-			string mdate = "";
-			string downloads = "0";
-			string name = "";
-			string rating = "0.00";
-			string votes = "0";
-			string views = "0";
-			string download = "";
-			float fileSize = 0.0;
-
-			// Check if root has valid data
-			if (root[0].isInt()) {
-				categorie = to_string(root[0].asInt());
-			}
-
-			if (root[1].isInt()) {
-				date = to_string(root[1].asInt());
-			}
-
-			if (root[2].isInt()) {
-				mdate = to_string(root[2].asInt());
-			}
-
-			if (root[3].isInt()) {
-				downloads = to_string(root[3].asInt());
-			}
-
-			if (root[4].isString()) {
-				name = root[4].asString();
-			}
-
-			if (root[5].isString()) {
-				rating = root[5].asString();
-			}
-
-			if (root[6].isInt()) {
-				votes = to_string(root[6].asInt());
-			}
-
-			if (root[7].isInt()) {
-				views = to_string(root[7].asInt());
-			}
-
-			if (root[8].isString()) {
-				download = root[8].asString();
-			}
-
-			if (root[9].isInt()) {
-				fileSize = (float)root[9].asInt();
-			}
-
-
-			// Give FileSize a nice layout
-#ifdef _WIN32
-			sprintf_s(fileSizeString, "%.2f B", fileSize);
-#else
-			sprintf(fileSizeString, "%.2f B", fileSize);
-#endif
-			if (fileSize > 1024.0) {
-				fileSize /= 1024.0;
-#ifdef _WIN32
-				sprintf_s(fileSizeString, "%.2f KB", fileSize);
-#else
-				sprintf(fileSizeString, "%.2f KB", fileSize);
-#endif
-				if (fileSize > 1024.0) {
-					fileSize /= 1024.0;
-#ifdef _WIN32
-					sprintf_s(fileSizeString, "%.2f MB", fileSize);
-#else
-					sprintf(fileSizeString, "%.2f MB", fileSize);
-#endif
-				}
-			}
-
-			// Update and print the current status
-			printStatus();
-
-			// Insert the map
-			insertMap(data, categorie, date, mdate, downloads, name, rating, votes, views, download, fileSizeString);
-		} else {
-			cerr << "ERROR: Couldn't get map information. Program seems to be outdated..." << endl;
-			exit(1);
-		}
-	} else {
-		cerr << "ERROR: Error on loading map details: " << error << endl;
-
-		if (errorCount > 20) {
-			cerr << "ERROR: Found more then 20 errors on url " << url << ". Skipping..." << endl;
-			return true;
-		}
-		return false;
-	}
-	return true;
-}
 
 
 // Get Information about categories and maps
@@ -523,6 +310,283 @@ bool OnGotCategorieDetails(char *error, string result, string url, string data, 
 	}
 	return true;
 }
+
+// We got the main maps page of a game
+bool OnGotMainPage(char *error, string result, string url, string data, int errorCount) {
+	// Valid answer?
+	if ((strcmp(error, "") == 0) && result != "") {
+		// Pages
+		int pages = 1;
+
+		// Now go through each page
+		// Splitter for pages
+		vector<std::string> founds = splitString(result, "class=\"CurrentPage\">");
+
+		// Must be 3
+		if (founds.size() == 3) {
+			string found = founds[1];
+
+			// Split for highest page
+			vector<std::string> pageCount = splitString(found, "SubmissionsList\">", "</a>");
+
+			int size = pageCount.size();
+			if (size > 2) {
+				// Replace garbage
+				replaceString(pageCount[size - 1], "\n", "");
+				replaceString(pageCount[size - 1], "\t", "");
+
+				// Now get the page count
+				pages = atoi(pageCount[size - 1].c_str());
+			} else {
+				cerr << "ERROR: Couldn't get last page count. Program seems to be outdated..." << endl;
+				exit(1);
+			}
+		} else {
+			cerr << "ERROR: Couldn't get first page count. Program seems to be outdated..." << endl;
+			exit(1);
+		}
+
+		cout << "INFO: Found " << pages << " pages of maps" << endl;
+
+		// Now read all pages
+		OnGotMapsPage("", result, url, data, 0);
+
+		for (int i = 2; i <= pages; i++) {
+			getPage(OnGotMapsPage, url + "?vl[page]=" + to_string(i) + "&mid=SubmissionsList", data, false, 0);
+		}
+	} else {
+		cerr << "ERROR: Error on loading game main page: " << error << endl;
+		return false;
+	}
+	return true;
+}
+
+
+// Open a new Page
+bool OnGotMapsPage(char *error, string result, string url, string data, int errorCount) {
+	// Valid answer?
+	if ((strcmp(error, "") == 0) && result != "") {
+		// Splitter for Maps
+		vector<std::string> founds = splitString(result, "td class=\"Preview\"", "<div");
+
+		// Must be at least 2
+		if (founds.size() > 1) {
+			cout << "INFO: Found " << founds.size() << " maps on page" << endl;
+
+			for (unsigned int i = 1; i < founds.size(); i++) {
+				string found = founds[i];
+
+				// Split for mapID
+				vector<std::string> idSplit = splitString(found, "maps/", "\">");
+
+				if (idSplit.size() == 2) {
+					// Replace garbage
+					replaceString(idSplit[1], "\n", "");
+					replaceString(idSplit[1], "\t", "");
+					replaceString(idSplit[1], "<br>", "");
+
+					data = idSplit[1];
+				} else {
+					cerr << "ERROR: Couldn't get mapID split. Program seems to be outdated..." << endl;
+					exit(1);
+				}
+
+				getPage(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=catid,date,mdate,downloads,name,rating,votes,views", data, true, 0);
+			}
+		} else {
+			cerr << "ERROR: Couldn't get maps head. Programm seems to be outdated..." << endl;
+			exit(1);
+		}
+	} else {
+		cerr << "ERROR: Error on loading maps page: " << error << endl;
+
+		if (errorCount > 20) {
+			cerr << "ERROR: Found more then 20 errors on url " << url << ". Skipping..." << endl;
+			return true;
+		}
+		return false;
+	}
+	return true;
+}
+
+
+// Retrieve Map Details
+bool OnGotMapDetails(char *error, string result, string url, string data, int errorCount) {
+	// Valid answer?
+	if ((strcmp(error, "") == 0) && result != "") {
+		// Read information of the map
+		Json::Value root;
+		Json::Reader reader;
+
+		if (!reader.parse(result, root) && root.size() == 1) {
+			cerr << "ERROR: Couldn't read map information. Program seems to be outdated..." << endl;
+			exit(1);
+		}
+
+		// Check all information
+		if (root.size() == 8) {
+			// We have to temp. save the values, so we can check for valid data
+			string categorie = "";
+			string date = "";
+			string mdate = "";
+			string downloads = "0";
+			string name = "";
+			string rating = "0.00";
+			string votes = "0";
+			string views = "0";
+
+			// Check if root has valid data
+			if (root[0].isInt()) {
+				categorie = to_string(root[0].asInt());
+			}
+
+			if (root[1].isInt()) {
+				date = to_string(root[1].asInt());
+			}
+
+			if (root[2].isInt()) {
+				mdate = to_string(root[2].asInt());
+			}
+
+			if (root[3].isInt()) {
+				downloads = to_string(root[3].asInt());
+			}
+
+			if (root[4].isString()) {
+				name = root[4].asString();
+			}
+
+			if (root[5].isString()) {
+				rating = root[5].asString();
+			}
+
+			if (root[6].isInt()) {
+				votes = to_string(root[6].asInt());
+			}
+
+			if (root[7].isInt()) {
+				views = to_string(root[7].asInt());
+			}
+
+			// Add the map without download details
+			insertMap(data, categorie, date, mdate, downloads, name, rating, votes, views);
+
+			// Finally get download details
+			getPage(OnGotMapDownloadDetails, "https://gamebanana.com/maps/download/" + data, data, false, 0);
+		} else {
+			cerr << "ERROR: Couldn't get map information. Program seems to be outdated..." << endl;
+			exit(1);
+		}
+	} else {
+		cerr << "ERROR: Error on loading map details: " << error << endl;
+
+		if (errorCount > 20) {
+			cerr << "ERROR: Found more then 20 errors on url " << url << ". Skipping..." << endl;
+			return true;
+		}
+		return false;
+	}
+	return true;
+}
+
+
+// Retrieve Map Download Details
+bool OnGotMapDownloadDetails(char *error, string result, string url, string data, int errorCount) {
+	// Valid answer?
+	if ((strcmp(error, "") == 0) && result != "") {
+		// Splitter for FileInfo
+		vector<std::string> founds = splitString(result, "class=\"FileInfo\"", "<div");
+
+		// Must be at least 2
+		if (founds.size() > 1) {
+			string found = founds[1];
+			string fileName;
+			char fileSizeString[32];
+
+			// Split for file name
+			vector<std::string> fileNameSplit = splitString(found, "<span>", "</span>");
+
+			if (fileNameSplit.size() == 4) {
+				// Replace garbage
+				replaceString(fileNameSplit[1], " ", "");
+				replaceString(fileNameSplit[1], "\n", "");
+				replaceString(fileNameSplit[1], "\t", "");
+				replaceString(fileNameSplit[1], "<br>", "");
+
+				fileName = fileNameSplit[1];
+			} else {
+				cerr << "ERROR: Couldn't get map download file name. Program seems to be outdated..." << endl;
+				exit(1);
+			}
+
+			// Split for file size element
+			vector<std::string> fileSizeElementSplit = splitString(found, "<small>", "</small>");
+
+			if (fileSizeElementSplit.size() == 2) {
+				// Split for file size
+				vector<std::string> fileSizeSplit = splitString(fileSizeElementSplit[1], "title=\"", "bytes\">");
+
+				if (fileSizeSplit.size() == 2) {
+					// Replace garbage
+					replaceString(fileSizeSplit[1], " ", "");
+					replaceString(fileSizeSplit[1], "\n", "");
+					replaceString(fileSizeSplit[1], "\t", "");
+					replaceString(fileSizeSplit[1], "<br>", "");
+
+					float fileSize = std::stof(fileSizeSplit[1]);
+
+					// Give FileSize a nice layout
+#ifdef _WIN32
+					sprintf_s(fileSizeString, "%.2f B", fileSize);
+#else
+					sprintf(fileSizeString, "%.2f B", fileSize);
+#endif
+					if (fileSize > 1024.0) {
+						fileSize /= 1024.0;
+#ifdef _WIN32
+						sprintf_s(fileSizeString, "%.2f KB", fileSize);
+#else
+						sprintf(fileSizeString, "%.2f KB", fileSize);
+#endif
+						if (fileSize > 1024.0) {
+							fileSize /= 1024.0;
+#ifdef _WIN32
+							sprintf_s(fileSizeString, "%.2f MB", fileSize);
+#else
+							sprintf(fileSizeString, "%.2f MB", fileSize);
+#endif
+						}
+					}
+				} else {
+					cerr << "ERROR: Couldn't get map download file size. Program seems to be outdated..." << endl;
+					exit(1);
+				}
+			} else {
+				cerr << "ERROR: Couldn't get map download file size element. Program seems to be outdated..." << endl;
+				exit(1);
+			}
+
+			// Update and print the current status
+			printStatus();
+
+			// Insert the map
+			updateMapDownloadDetails(data, "https://files.gamebanana.com/maps/" + fileName, fileSizeString);
+		} else {
+			cerr << "ERROR: Couldn't get map download file. Programm seems to be outdated..." << endl;
+			exit(1);
+		}
+	} else {
+		cerr << "ERROR: Error on loading map download details page: " << error << endl;
+
+		if (errorCount > 20) {
+			cerr << "ERROR: Found more then 20 errors on url " << url << ". Skipping..." << endl;
+			return true;
+		}
+		return false;
+	}
+	return true;
+}
+
 
 // Print current status
 void printStatus() {
@@ -658,7 +722,7 @@ void getPageThread(callback function, string page, string data, int errorCount) 
 
 			// Clean Curl
 			curl_easy_cleanup(curl);
-			
+
 			errorCount++;
 			continue;
 		}
@@ -694,21 +758,69 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp) {
 
 // Insert a new Categorie
 void insertCategorie(string id, string name) {
-	string query = "INSERT OR IGNORE INTO `mapdl_categories_v2` (`id`, `name`, `game`) VALUES ('" + id + "', '" + name + "', '" + getGameFromId(currentGame) + "')";
-	sqlite3_exec(db, query.c_str(), 0, 0, 0);
+	char *errorMessage;
 
-	query = "UPDATE `mapdl_categories_v2` SET `name` = '" + name + "', `game` = '" + getGameFromId(currentGame) + "' WHERE `id` = " + id;
-	sqlite3_exec(db, query.c_str(), 0, 0, 0);
+	char *query = sqlite3_mprintf("INSERT OR IGNORE INTO `mapdl_categories_v2` (`id`, `name`, `game`) VALUES (%s, '%q', '%q')", id.c_str(), name.c_str(), (getGameFromId(currentGame)).c_str());
+	if (sqlite3_exec(db, query, 0, 0, &errorMessage) != SQLITE_OK) {
+		cerr << "ERROR: Couldn't insert category (" << query << ":" << errorMessage << "). Program seems to be outdated..." << endl;
+		sqlite3_free(errorMessage);
+		sqlite3_free(query);
+
+		exit(1);
+	}
+	sqlite3_free(query);
+
+	query = sqlite3_mprintf("UPDATE `mapdl_categories_v2` SET `name` = '%q', `game` = '%q' WHERE `id` = %s", name.c_str(), (getGameFromId(currentGame)).c_str(), id.c_str());
+	if (sqlite3_exec(db, query, 0, 0, &errorMessage) != SQLITE_OK) {
+		cerr << "ERROR: Couldn't update category (" << query << ":" << errorMessage << "). Program seems to be outdated..." << endl;
+		sqlite3_free(errorMessage);
+		sqlite3_free(query);
+
+		exit(1);
+	}
+	sqlite3_free(query);
 }
 
 
 // Insert a new Map
-void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views, string download, string size) {
-	string query = "INSERT OR IGNORE INTO `mapdl_maps_v2` (`id`, `categories_id`, `date`, `mdate`, `downloads`, `name`, `rating`, `votes`, `views`, `download`, `size`) VALUES (" + id + ", " + categorie + ", " + date + ", " + mdate + ", " + downloads + ", '" + name + "', '" + rating + "', " + votes + ", " + views + ", '" + download + "', '" + size + "')";
-	sqlite3_exec(db, query.c_str(), 0, 0, 0);
+void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views) {
+	char *errorMessage;
 
-	query = "UPDATE `mapdl_maps_v2` SET `categories_id` = " + categorie + ", `date` = " + date + ", `mdate` = " + mdate + ", `downloads` = " + downloads + ", `name` = '" + name + "', `rating` = '" + rating + "', `votes` = " + votes + ", `views` = " + views + ", `download` = '" + download + "', `size` = '" + size + "' WHERE `id` = " + id;
-	sqlite3_exec(db, query.c_str(), 0, 0, 0);
+	char *query = sqlite3_mprintf("INSERT OR IGNORE INTO `mapdl_maps_v2` (`id`, `categories_id`, `date`, `mdate`, `downloads`, `name`, `rating`, `votes`, `views`) VALUES (%s, %s, %s, %s, %s, '%q', '%s', %s, %s)", id.c_str(), categorie.c_str(), date.c_str(), mdate.c_str(), downloads.c_str(), name.c_str(), rating.c_str(), votes.c_str(), views.c_str());
+	if (sqlite3_exec(db, query, 0, 0, &errorMessage) != SQLITE_OK) {
+		cerr << "ERROR: Couldn't insert map (" << query << ":" << errorMessage << "). Program seems to be outdated..." << endl;
+		sqlite3_free(errorMessage);
+		sqlite3_free(query);
+
+		exit(1);
+	}
+	sqlite3_free(query);
+
+	query = sqlite3_mprintf("UPDATE `mapdl_maps_v2` SET `categories_id` = %s, `date` = %s, `mdate` = %s, `downloads` = %s, `name` = '%q', `rating` = '%s', `votes` = %s, `views` = %s WHERE `id` = %s", categorie.c_str(), date.c_str(), mdate.c_str(), downloads.c_str(), name.c_str(), rating.c_str(), votes.c_str(), views.c_str(), id.c_str());
+	if (sqlite3_exec(db, query, 0, 0, &errorMessage) != SQLITE_OK) {
+		cerr << "ERROR: Couldn't update map (" << query << ":" << errorMessage << "). Program seems to be outdated..." << endl;
+		sqlite3_free(errorMessage);
+		sqlite3_free(query);
+
+		exit(1);
+	}
+	sqlite3_free(query);
+}
+
+
+// Insert a new Map
+void updateMapDownloadDetails(string id, string download, string size) {
+	char *errorMessage;
+
+	char *query = sqlite3_mprintf("UPDATE `mapdl_maps_v2` SET `download` = '%q', `size` = '%s' WHERE `id` = %s", download.c_str(), size.c_str(), id.c_str());
+	if (sqlite3_exec(db, query, NULL, NULL, &errorMessage) != SQLITE_OK) {
+		cerr << "ERROR: Couldn't update map download details (" << query << ":" << errorMessage << "). Program seems to be outdated..." << endl;
+		sqlite3_free(errorMessage);
+		sqlite3_free(query);
+
+		exit(1);
+	}
+	sqlite3_free(query);
 }
 
 

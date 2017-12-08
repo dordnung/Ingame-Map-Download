@@ -55,10 +55,11 @@ using namespace std;
 typedef bool(*callback)(char*, string, string, string, int);
 
 // Main Methods
+bool OnGotCategorieDetails(char *error, string result, string url, string data, int errorCount);
 bool OnGotMainPage(char *error, string result, string url, string data, int errorCount);
 bool OnGotMapsPage(char *error, string result, string url, string data, int errorCount);
 bool OnGotMapDetails(char *error, string result, string url, string data, int errorCount);
-bool OnGotCategorieDetails(char *error, string result, string url, string data, int errorCount);
+bool OnGotMapDownloadDetails(char *error, string result, string url, string data, int errorCount);
 
 // Print current status
 void printStatus();
@@ -76,7 +77,8 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
 
 // SQLite 3
 void insertCategorie(string id, string name);
-void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views, string download, string size);
+void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views);
+void updateMapDownloadDetails(string id, string download, string size);
 
 
 // String operations
