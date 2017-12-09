@@ -79,6 +79,7 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
 void insertCategorie(string id, string name);
 void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views);
 void updateMapDownloadDetails(string id, string download, string size);
+void deleteMap(string id);
 
 
 // String operations

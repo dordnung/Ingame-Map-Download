@@ -385,7 +385,7 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
 					replaceString(idSplit[1], "\t", "");
 					replaceString(idSplit[1], "<br>", "");
 
-					data = idSplit[1];
+					data = "38511";//idSplit[1];
 				} else {
 					cerr << "ERROR: Couldn't get mapID split. Program seems to be outdated..." << endl;
 					exit(1);
@@ -515,8 +515,10 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 
 				fileName = fileNameSplit[1];
 			} else {
-				cerr << "ERROR: Couldn't get map download file name. Program seems to be outdated..." << endl;
-				exit(1);
+				deleteMap(data);
+
+				cerr << "ERROR: Couldn't get map download file name. Skipping..." << endl;
+				return true;
 			}
 
 			// Split for file size element
@@ -558,12 +560,16 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 						}
 					}
 				} else {
-					cerr << "ERROR: Couldn't get map download file size. Program seems to be outdated..." << endl;
-					exit(1);
+					deleteMap(data);
+
+					cerr << "ERROR: Couldn't get map download file size. Skipping..." << endl;
+					return true;
 				}
 			} else {
-				cerr << "ERROR: Couldn't get map download file size element. Program seems to be outdated..." << endl;
-				exit(1);
+				deleteMap(data);
+
+				cerr << "ERROR: Couldn't get map download file size element. Skipping..." << endl;
+				return true;
 			}
 
 			// Update and print the current status
@@ -572,13 +578,17 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 			// Insert the map
 			updateMapDownloadDetails(data, "https://files.gamebanana.com/maps/" + fileName, fileSizeString);
 		} else {
-			cerr << "ERROR: Couldn't get map download file. Programm seems to be outdated..." << endl;
-			exit(1);
+			deleteMap(data);
+
+			cerr << "ERROR: Couldn't get map download file. Skipping..." << endl;
+			return true;
 		}
 	} else {
 		cerr << "ERROR: Error on loading map download details page: " << error << endl;
 
 		if (errorCount > 20) {
+			deleteMap(data);
+
 			cerr << "ERROR: Found more then 20 errors on url " << url << ". Skipping..." << endl;
 			return true;
 		}
@@ -808,13 +818,28 @@ void insertMap(string id, string categorie, string date, string mdate, string do
 }
 
 
-// Insert a new Map
+// Update a new Map
 void updateMapDownloadDetails(string id, string download, string size) {
 	char *errorMessage;
 
 	char *query = sqlite3_mprintf("UPDATE `mapdl_maps_v2` SET `download` = '%q', `size` = '%s' WHERE `id` = %s", download.c_str(), size.c_str(), id.c_str());
 	if (sqlite3_exec(db, query, NULL, NULL, &errorMessage) != SQLITE_OK) {
 		cerr << "ERROR: Couldn't update map download details (" << query << ":" << errorMessage << "). Program seems to be outdated..." << endl;
+		sqlite3_free(errorMessage);
+		sqlite3_free(query);
+
+		exit(1);
+	}
+	sqlite3_free(query);
+}
+
+// Update a new Map
+void deleteMap(string id) {
+	char *errorMessage;
+
+	char *query = sqlite3_mprintf("DELETE FROM `mapdl_maps_v2` WHERE `id` = %s", id.c_str());
+	if (sqlite3_exec(db, query, NULL, NULL, &errorMessage) != SQLITE_OK) {
+		cerr << "ERROR: Couldn't delete map (" << query << ":" << errorMessage << "). Program seems to be outdated..." << endl;
 		sqlite3_free(errorMessage);
 		sqlite3_free(query);
 
