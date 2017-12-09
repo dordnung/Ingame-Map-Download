@@ -385,7 +385,7 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
 					replaceString(idSplit[1], "\t", "");
 					replaceString(idSplit[1], "<br>", "");
 
-					data = "38511";//idSplit[1];
+					data = idSplit[1];
 				} else {
 					cerr << "ERROR: Couldn't get mapID split. Program seems to be outdated..." << endl;
 					exit(1);
