@@ -387,15 +387,15 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
 
 					data = idSplit[1];
 				} else {
-					cerr << "ERROR: Couldn't get mapID split. Program seems to be outdated..." << endl;
-					exit(1);
+					cerr << "ERROR: Couldn't get mapID split. Skipping..." << endl;
+					return true;
 				}
 
 				getPage(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=catid,date,mdate,downloads,name,rating,votes,views", data, true, 0);
 			}
 		} else {
-			cerr << "ERROR: Couldn't get maps head. Programm seems to be outdated..." << endl;
-			exit(1);
+			cerr << "ERROR: Couldn't get maps head. Skipping..." << endl;
+			return true;
 		}
 	} else {
 		cerr << "ERROR: Error on loading maps page: " << error << endl;
@@ -419,8 +419,8 @@ bool OnGotMapDetails(char *error, string result, string url, string data, int er
 		Json::Reader reader;
 
 		if (!reader.parse(result, root) && root.size() == 1) {
-			cerr << "ERROR: Couldn't read map information. Program seems to be outdated..." << endl;
-			exit(1);
+			cerr << "ERROR: Couldn't read map information. Skipping..." << endl;
+			return true;
 		}
 
 		// Check all information
@@ -474,8 +474,8 @@ bool OnGotMapDetails(char *error, string result, string url, string data, int er
 			// Finally get download details
 			getPage(OnGotMapDownloadDetails, "https://gamebanana.com/maps/download/" + data, data, false, 0);
 		} else {
-			cerr << "ERROR: Couldn't get map information. Program seems to be outdated..." << endl;
-			exit(1);
+			cerr << "ERROR: Couldn't get map information. Skipping..." << endl;
+			return true;
 		}
 	} else {
 		cerr << "ERROR: Error on loading map details: " << error << endl;
