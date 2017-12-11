@@ -30,7 +30,8 @@ int currentGame = -1;
 
 // Use threading?
 bool threaded = false;
-vector<thread*> runningThreads;
+volatile int runningThreads;
+vector<string> foundCategories;
 
 // Current statistics
 volatile int allMaps = 0;
@@ -39,6 +40,7 @@ time_t startTime;
 
 // Mutex
 mutex threadMutex;
+mutex categoriesMutex;
 
 // Database
 sqlite3 *db;
@@ -176,7 +178,7 @@ int main(int argc, const char *argv[]) {
 	string query = "INSERT INTO `mapdl_info_v2` (`table_date`, `table_version`) VALUES ('" + (string)timeBuffer + "', 2)";
 	sqlite3_exec(db, query.c_str(), 0, 0, 0);
 
-	// First get all maps and categories
+	// First get all maps
 	for (int i = 1; i <= gameCount; i++) {
 		if (gameCount == 1) {
 			currentGame = getGameFromChoice(choice);
@@ -184,7 +186,7 @@ int main(int argc, const char *argv[]) {
 			currentGame = getGameFromChoice(i);
 		}
 
-		getPage(OnGotCategorieDetails, "http://gamebanana.com/maps/games/" + to_string(currentGame), "", false, 0);
+		getPage(OnGotMapsCount, "http://gamebanana.com/maps/games/" + to_string(currentGame), "", false, 0);
 	}
 
 	// Now start searching
@@ -207,7 +209,7 @@ int main(int argc, const char *argv[]) {
 	Sleeping(5);
 
 	// Sleep until all threads are finished
-	while (runningThreads.size() > 0) {
+	while (runningThreads) {
 		Sleeping(1);
 	}
 
@@ -226,87 +228,33 @@ int main(int argc, const char *argv[]) {
 //// MAIN OPERATIONS ///
 
 
-// Get Information about categories and maps
-bool OnGotCategorieDetails(char *error, string result, string url, string data, int errorCount) {
+// Get information about number of maps
+bool OnGotMapsCount(char *error, string result, string url, string data, int errorCount) {
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "") {
-		// Splitter for categories
-		vector<std::string> founds = splitString(result, "<h3>Categories</h3>", "</tbody>");
+		// Splitter for maps cpount
+		vector<string> founds = splitString(result, "\"OfText\">", "<span");
 
-		// Found Categories?
-		if (founds.size() == 2) {
+		// Found?
+		if (founds.size() == 3) {
 			// Replace garbage
+			replaceString(founds[1], "of", "");
+			replaceString(founds[1], "</span>", "");
+			replaceString(founds[1], ",", "");
 			replaceString(founds[1], "\n", "");
 			replaceString(founds[1], "\t", "");
 			replaceString(founds[1], "\r", "");
 
-			// Should be even, but first part is also there
-			vector<std::string> categorieParts = splitString(founds[1], "<td", "</td>");
+			allMaps = allMaps + atoi(founds[1].c_str());
 
-			if (categorieParts.size() % 3 == 1) {
-				// All maps
-				vector<std::string> mapCount = splitString(founds[1], "<td>", "</td>");
-
-				// Link name
-				vector<std::string> linkName = splitString(founds[1], "<td class=\"Name\"><a href=\"", "</a>");
-
-				if (linkName.size() <= 1) {
-					cerr << "ERROR: Couldn't get pre categorie link. Program seems to be outdated..." << endl;
-					exit(1);
-				}
-
-				// Get Map Count
-				if (mapCount.size() > 1) {
-					cout << "INFO: Found " << mapCount.size() << " categories in " << getGameFromId(currentGame) << endl;
-
-					// Loop for each map
-					for (unsigned int i = 1; i < mapCount.size(); i++) {
-						// Replace garbage
-						replaceString(mapCount[i], "<td>", "");
-						replaceString(mapCount[i], "</td>", "");
-						replaceString(mapCount[i], " ", "");
-						replaceString(mapCount[i], ",", "");
-
-						allMaps = allMaps + atoi(mapCount[i].c_str());
-					}
-
-					cout << "INFO: Found " << allMaps << " maps in " << getGameFromId(currentGame) << endl;
-				} else {
-					cout << "ERROR: Couldn't get pre maps count. Program seems to be outdated..." << endl;
-					exit(1);
-				}
-
-				// Loop for result
-				for (unsigned int i = 1; i < linkName.size(); i++) {
-					vector<std::string> realLinkName = splitString(linkName[i], "cats/");
-
-					if (realLinkName.size() == 2) {
-						vector<std::string> realCatId = splitString(realLinkName[1], "\">");
-
-						if (realCatId.size() == 2) {
-							// Insert new Typ
-							insertCategorie(realCatId[0], realCatId[1]);
-							cout << "INFO: Found category " << realCatId[1] << " with ID " << realCatId[0] << endl;
-						} else {
-							cerr << "ERROR: Couldn't get real catid. Program seems to be outdated..." << endl;
-							exit(1);
-						}
-					} else {
-						cerr << "ERROR: Couldn't get real link name. Program seems to be outdated..." << endl;
-						exit(1);
-					}
-				}
-			} else {
-				cerr << "ERROR: Number of categories should be even. Program seems to be outdated..." << endl;
-				exit(1);
-			}
+			cout << "INFO: Found " << founds[1] << " maps for " << getGameFromId(currentGame) << endl;
 		} else {
-			cerr << "ERROR: Couldn't get categorie head. Program seems to be outdated..." << endl;
+			cerr << "ERROR: Couldn't get map count. Program seems to be outdated..." << endl;
 			exit(1);
 		}
 	} else {
-		cerr << "ERROR: Error on loading game category details: " << error << endl;
-		return false;
+		cerr << "ERROR: Error on loading game map page: " << error << endl;
+		exit(1);
 	}
 	return true;
 }
@@ -320,14 +268,14 @@ bool OnGotMainPage(char *error, string result, string url, string data, int erro
 
 		// Now go through each page
 		// Splitter for pages
-		vector<std::string> founds = splitString(result, "class=\"CurrentPage\">");
+		vector<string> founds = splitString(result, "class=\"CurrentPage\">");
 
 		// Must be 3
 		if (founds.size() == 3) {
 			string found = founds[1];
 
 			// Split for highest page
-			vector<std::string> pageCount = splitString(found, "SubmissionsList\">", "</a>");
+			vector<string> pageCount = splitString(found, "SubmissionsList\">", "</a>");
 
 			int size = pageCount.size();
 			if (size > 2) {
@@ -367,7 +315,7 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "") {
 		// Splitter for Maps
-		vector<std::string> founds = splitString(result, "td class=\"Preview\"", "<div");
+		vector<string> founds = splitString(result, "td class=\"Preview\"", "<div");
 
 		// Must be at least 2
 		if (founds.size() > 1) {
@@ -377,7 +325,7 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
 				string found = founds[i];
 
 				// Split for mapID
-				vector<std::string> idSplit = splitString(found, "maps/", "\">");
+				vector<string> idSplit = splitString(found, "maps/", "\">");
 
 				if (idSplit.size() == 2) {
 					// Replace garbage
@@ -391,7 +339,7 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
 					return true;
 				}
 
-				getPage(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=catid,date,mdate,downloads,name,rating,votes,views", data, true, 0);
+				getPage(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=catid,Category().name,date,mdate,downloads,name,rating,votes,views", data, true, 0);
 			}
 		} else {
 			cerr << "ERROR: Couldn't get maps head. Skipping..." << endl;
@@ -424,9 +372,10 @@ bool OnGotMapDetails(char *error, string result, string url, string data, int er
 		}
 
 		// Check all information
-		if (root.size() == 8) {
+		if (root.size() == 9) {
 			// We have to temp. save the values, so we can check for valid data
 			string categorie = "";
+			string categorieName = "";
 			string date = "";
 			string mdate = "";
 			string downloads = "0";
@@ -440,33 +389,40 @@ bool OnGotMapDetails(char *error, string result, string url, string data, int er
 				categorie = to_string(root[0].asInt());
 			}
 
-			if (root[1].isInt()) {
-				date = to_string(root[1].asInt());
+			if (root[1].isString()) {
+				categorieName = root[1].asString();
 			}
 
 			if (root[2].isInt()) {
-				mdate = to_string(root[2].asInt());
+				date = to_string(root[2].asInt());
 			}
 
 			if (root[3].isInt()) {
-				downloads = to_string(root[3].asInt());
+				mdate = to_string(root[3].asInt());
 			}
 
-			if (root[4].isString()) {
-				name = root[4].asString();
+			if (root[4].isInt()) {
+				downloads = to_string(root[4].asInt());
 			}
 
 			if (root[5].isString()) {
-				rating = root[5].asString();
+				name = root[5].asString();
 			}
 
-			if (root[6].isInt()) {
-				votes = to_string(root[6].asInt());
+			if (root[6].isString()) {
+				rating = root[6].asString();
 			}
 
 			if (root[7].isInt()) {
-				views = to_string(root[7].asInt());
+				votes = to_string(root[7].asInt());
 			}
+
+			if (root[8].isInt()) {
+				views = to_string(root[8].asInt());
+			}
+
+			// Add category
+			insertCategorie(categorie, categorieName);
 
 			// Add the map without download details
 			insertMap(data, categorie, date, mdate, downloads, name, rating, votes, views);
@@ -495,7 +451,7 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 	// Valid answer?
 	if ((strcmp(error, "") == 0) && result != "") {
 		// Splitter for FileInfo
-		vector<std::string> founds = splitString(result, "class=\"FileInfo\"", "<div");
+		vector<string> founds = splitString(result, "class=\"FileInfo\"", "<div");
 
 		// Must be at least 2
 		if (founds.size() > 1) {
@@ -504,7 +460,7 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 			char fileSizeString[32];
 
 			// Split for file name
-			vector<std::string> fileNameSplit = splitString(found, "<span>", "</span>");
+			vector<string> fileNameSplit = splitString(found, "<span>", "</span>");
 
 			if (fileNameSplit.size() == 4) {
 				// Replace garbage
@@ -522,11 +478,11 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 			}
 
 			// Split for file size element
-			vector<std::string> fileSizeElementSplit = splitString(found, "<small>", "</small>");
+			vector<string> fileSizeElementSplit = splitString(found, "<small>", "</small>");
 
 			if (fileSizeElementSplit.size() == 2) {
 				// Split for file size
-				vector<std::string> fileSizeSplit = splitString(fileSizeElementSplit[1], "title=\"", "bytes\">");
+				vector<string> fileSizeSplit = splitString(fileSizeElementSplit[1], "title=\"", "bytes\">");
 
 				if (fileSizeSplit.size() == 2) {
 					// Replace garbage
@@ -535,7 +491,7 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 					replaceString(fileSizeSplit[1], "\t", "");
 					replaceString(fileSizeSplit[1], "<br>", "");
 
-					float fileSize = std::stof(fileSizeSplit[1]);
+					float fileSize = stof(fileSizeSplit[1]);
 
 					// Give FileSize a nice layout
 #ifdef _WIN32
@@ -685,26 +641,26 @@ string getGameFromId(int id) {
 // Get Page joinable
 void getPage(callback function, string page, string data, bool threading, int errorCount) {
 	if (threading && threaded) {
-		thread pageThread(getPageThread, function, page, data, errorCount);
-
 		threadMutex.lock();
-		runningThreads.push_back(&pageThread);
+		runningThreads++;
 		threadMutex.unlock();
+
+		thread pageThread(getPageThread, function, page, data, errorCount, true);
 		pageThread.detach();
 	} else {
-		getPageThread(function, page, data, errorCount);
+		getPageThread(function, page, data, errorCount, false);
 	}
 }
 
 // Thread for curl
-void getPageThread(callback function, string page, string data, int errorCount) {
+void getPageThread(callback function, string page, string data, int errorCount, bool isThreaded) {
 	bool validResponse = false;
 	while (!validResponse) {
 		// Error buffer
 		char ebuf[CURL_ERROR_SIZE];
 
 		// Response
-		std::ostringstream stream;
+		ostringstream stream;
 
 		// Init Curl
 		CURL *curl = curl_easy_init();
@@ -743,19 +699,16 @@ void getPageThread(callback function, string page, string data, int errorCount) 
 	}
 
 	// Remove thread from running threads
-	threadMutex.lock();
-	for (std::vector<thread*>::iterator it = runningThreads.begin(); it != runningThreads.end(); ++it) {
-		if ((*it)->get_id() == this_thread::get_id()) {
-			runningThreads.erase(it);
-			break;
-		}
+	if (isThreaded) {
+		threadMutex.lock();
+		runningThreads--;
+		threadMutex.unlock();
 	}
-	threadMutex.unlock();
 }
 
 // Curl receive data -> write to buffer
 size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp) {
-	std::ostringstream *data = (std::ostringstream*)userp;
+	ostringstream *data = (ostringstream*)userp;
 	size_t count = size * nmemb;
 
 	data->write((char*)buffer, count);
@@ -768,6 +721,16 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp) {
 
 // Insert a new Categorie
 void insertCategorie(string id, string name) {
+	categoriesMutex.lock();
+	if (find(foundCategories.begin(), foundCategories.end(), id) != foundCategories.end()) {
+		categoriesMutex.unlock();
+		return;
+	}
+	cout << "INFO: Found new categorie " << name << " for " << getGameFromId(currentGame) << endl;
+
+	foundCategories.push_back(id);
+	categoriesMutex.unlock();
+
 	char *errorMessage;
 
 	char *query = sqlite3_mprintf("INSERT OR IGNORE INTO `mapdl_categories_v2` (`id`, `name`, `game`) VALUES (%s, '%q', '%q')", id.c_str(), name.c_str(), (getGameFromId(currentGame)).c_str());
@@ -857,7 +820,7 @@ void replaceString(string &str, const string& oldStr, const string& newStr) {
 	size_t pos = 0;
 
 	// Next item?
-	while ((pos = str.find(oldStr, pos)) != std::string::npos) {
+	while ((pos = str.find(oldStr, pos)) != string::npos) {
 		// Replace
 		str.replace(pos, oldStr.length(), newStr);
 		pos += newStr.length();
@@ -865,9 +828,9 @@ void replaceString(string &str, const string& oldStr, const string& newStr) {
 }
 
 // Split a string with start and end
-vector<std::string> splitString(const string &str, const string& search, const string& to) {
+vector<string> splitString(const string &str, const string& search, const string& to) {
 	// Vector with splits
-	std::vector<std::string> splits;
+	vector<string> splits;
 
 	// current pos
 	size_t pos = 0;
@@ -876,7 +839,7 @@ vector<std::string> splitString(const string &str, const string& search, const s
 	bool first = true;
 
 	// Next item?
-	while ((pos = str.find(search, pos)) != std::string::npos) {
+	while ((pos = str.find(search, pos)) != string::npos) {
 		if (first) {
 			// Save also first item
 			string found = str.substr(0, pos);

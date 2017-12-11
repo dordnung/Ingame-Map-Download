@@ -33,6 +33,7 @@
 #include <thread>
 #include <mutex>
 #include <ctime>
+#include <algorithm>
 #include <curl/curl.h>
 #include <sqlite3.h>
 #include "json/json.h"
@@ -41,7 +42,7 @@
 // Sleeping for different OSs
 #ifdef _WIN32
 #include <windows.h>
-#define Sleeping(seconds) Sleep(seconds*1000);
+#define Sleeping(seconds) Sleep(seconds * 1000);
 #else
 #include <unistd.h>
 #define Sleeping(seconds) sleep(seconds);
@@ -55,7 +56,7 @@ using namespace std;
 typedef bool(*callback)(char*, string, string, string, int);
 
 // Main Methods
-bool OnGotCategorieDetails(char *error, string result, string url, string data, int errorCount);
+bool OnGotMapsCount(char *error, string result, string url, string data, int errorCount);
 bool OnGotMainPage(char *error, string result, string url, string data, int errorCount);
 bool OnGotMapsPage(char *error, string result, string url, string data, int errorCount);
 bool OnGotMapDetails(char *error, string result, string url, string data, int errorCount);
@@ -70,7 +71,7 @@ string getGameFromId(int id);
 
 // Curl
 void getPage(callback function, string page, string data, bool threading, int errorCount);
-void getPageThread(callback function, string page, string data, int errorCount);
+void getPageThread(callback function, string page, string data, int errorCount, bool isThreaded);
 
 size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
 
@@ -84,4 +85,4 @@ void deleteMap(string id);
 
 // String operations
 void replaceString(string &str, const string& oldStr, const string& newStr);
-vector<std::string> splitString(const string &str, const string& search, const string& to = "");
+vector<string> splitString(const string &str, const string& search, const string& to = "");
