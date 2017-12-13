@@ -45,6 +45,7 @@
 
 // Cookie for config
 #undef REQUIRE_PLUGIN
+#undef REQUIRE_EXTENSIONS
 #include <clientprefs>
 
 // Maybe include the updater if exists
