@@ -421,6 +421,11 @@ bool OnGotMapDetails(char *error, string result, string url, string data, int er
 				views = to_string(root[8].asInt());
 			}
 
+			if (categorie.empty() || categorieName.empty()) {
+				cerr << "ERROR: Category stuff can't be empty. Skipping..." << endl;
+				return true;
+			}
+
 			// Add category
 			insertCategorie(categorie, categorieName);
 
