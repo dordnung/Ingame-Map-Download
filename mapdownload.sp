@@ -3321,6 +3321,20 @@ int SearchForFolders(char[] path, int found)
                     }
                 }
 
+                // jpg file?
+                else if ((StrEndsWith(content, ".jpg") || StrEndsWith(content, ".jpeg")) && type == FileType_File)
+                {
+                    // Add File to file list, for uploading
+                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
+
+
+                    // Copy jpg to maps folder
+                    Format(content, sizeof(content), "maps/%s", content);
+
+                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
+                    System2_CopyFile(CopyFinished, newPath, content, false);
+                }
+
                 // Map file
                 else if (StrEndsWith(content, ".bsp") && type == FileType_File)
                 {
@@ -3344,7 +3358,8 @@ int SearchForFolders(char[] path, int found)
                     if (g_bMapCycle)
                     {
                         // File
-                        char readbuffer[128];
+                        char readbuffer[PLATFORM_MAX_PATH];
+                        char mapcyclePath[PLATFORM_MAX_PATH];
                         File mapcycle = null;
 
 
@@ -3355,24 +3370,24 @@ int SearchForFolders(char[] path, int found)
                         // After steam pipe update mapcycle file is in cfg folder
                         if (FileExists("cfg/mapcycle.txt"))
                         {
-                            // Write to mapcycle
-                            mapcycle = OpenFile("cfg/mapcycle.txt", "r+b");
+                            strcopy(mapcyclePath, sizeof(mapcyclePath), "cfg/mapcycle.txt");
                         }
 
                         // But the old path is also possible
                         else
                         {
-                            // Write to mapcycle
-                            mapcycle = OpenFile("mapcycle.txt", "r+b");
+                            strcopy(mapcyclePath, sizeof(mapcyclePath), "mapcycle.txt");
                         }
 
 
                         // Found valid mapcycle?
+                        mapcycle = OpenFile(mapcyclePath, "r+b");
                         if (mapcycle != null)
                         {
                             // Search for duplicate
                             bool duplicate = false;
-
+                            bool added = false;
+                            ArrayList maps = new ArrayList(PLATFORM_MAX_PATH);
 
                             while (!mapcycle.EndOfFile() && mapcycle.ReadLine(readbuffer, sizeof(readbuffer)))
                             {
@@ -3381,10 +3396,10 @@ int SearchForFolders(char[] path, int found)
                                 ReplaceString(readbuffer, sizeof(readbuffer), "\t", "");
                                 ReplaceString(readbuffer, sizeof(readbuffer), "\r", "");
 
-
                                 // No comments
                                 if (readbuffer[0] == '/' || readbuffer[0] == ' ')
                                 {
+                                    maps.PushString(readbuffer);
                                     continue;
                                 }
 
@@ -3393,26 +3408,51 @@ int SearchForFolders(char[] path, int found)
                                 {
                                     // Found duplicate!
                                     duplicate = true;
-
-                                    // Stop
                                     break;
                                 }
+
+                                // Keep sorting of the file
+                                if (!added && strcmp(content, readbuffer, false) <= 0)
+                                {
+                                    maps.PushString(content);
+                                    added = true;
+                                }
+
+                                maps.PushString(readbuffer);
                             }
 
+                            // Close the file
+                            mapcycle.Close();
 
                             // If not in mapcycle, add it
                             if (!duplicate)
                             {
-                                // Add a carriage return as line ending for WindowsOS
-                                if (System2_GetOS() == OS_WINDOWS)
-                                {
-                                    StrCat(content, sizeof(content), "\r");
+                                // Maybe it should stay at last line
+                                if (!added) {
+                                    maps.PushString(content);
                                 }
-                                mapcycle.WriteLine(content);
+
+                                // Open the mapcycle writeable
+                                mapcycle = OpenFile(mapcyclePath, "w+b");
+                                if (mapcycle != null) {
+                                    for (int i = 0; i < maps.Length; i++) {
+                                        maps.GetString(i, readbuffer, sizeof(readbuffer));
+
+                                        // Add a carriage return as line ending for WindowsOS
+                                        if (System2_GetOS() == OS_WINDOWS)
+                                        {
+                                            StrCat(readbuffer, sizeof(readbuffer), "\r");
+                                        }
+
+                                        mapcycle.WriteLine(readbuffer);
+                                    }
+
+                                    mapcycle.Close();
+                                }
                             }
 
-                            // Close
-                            mapcycle.Close();
+                            // delete the maps array
+                            delete maps;
                         }
                     }
 
