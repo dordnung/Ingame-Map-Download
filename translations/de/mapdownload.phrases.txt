@@ -170,23 +170,19 @@
 	}
 	"Downloading"
 	{
-		"de"		"Downloade Map"
+		"de"		"Downloade"
 	}
 	"Uploading"
 	{
-		"de"		"Uploade Map"
+		"de"		"Uploade"
 	}
 	"Compressing"
 	{
-		"de"		"Komprimiere Map"
+		"de"		"Komprimiere"
 	}
 	"InvalidUrl"
 	{
 		"de"		"{lightgreen}Die URL '{1}' {green}ist keine gültige Datei!"
-	}
-	"Queue"
-	{
-		"de"		"{1} Download(s) in der Warteschlange"
 	}
 	"Failed"
 	{
@@ -210,6 +206,6 @@
 	}
 	"FinishHint"
 	{
-		"de"		"Map erfolgreich heruntergeladen: {1}"
+		"de"		"Download erfolgreich"
 	}
 }

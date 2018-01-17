@@ -182,25 +182,20 @@
 	}
 	"Downloading"
 	{
-		"en"		"Downloading map"
+		"en"		"Downloading"
 	}
 	"Uploading"
 	{
-		"en"		"Uploading map"
+		"en"		"Uploading"
 	}
 	"Compressing"
 	{
-		"en"		"Compressing map"
+		"en"		"Compressing"
 	}
 	"InvalidUrl"
 	{
 		"#format"	"{1:s}"
 		"en"		"{lightgreen}The URL '{1}' {green}isn't a valid file!"
-	}
-	"Queue"
-	{
-		"#format"	"{1:i}"
-		"en"		"{1} download/s in queue"
 	}
 	"Failed"
 	{
@@ -227,7 +222,6 @@
 	}
 	"FinishHint"
 	{
-		"#format"	"{1:s}"
-		"en"		"Successfully downloaded map: {1}"
+		"en"		"Downloaded successful"
 	}
 }

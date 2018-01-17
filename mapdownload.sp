@@ -1465,7 +1465,6 @@ void SendCurrentStatus()
 {
     // Not finished 
     char message[256];
-    char queue[64];
     char bar[16];
     char percent[64];
 
@@ -1475,11 +1474,8 @@ void SendCurrentStatus()
 
 
     // First check if finished
-    float holdTime = 7.0;
     if (g_Downloads[g_iCurrentDownload][DL_MODE] != MODUS_FINISH)
     {
-        holdTime = 15.0;
-
         // Not finished 
         current = g_Downloads[g_iCurrentDownload][DL_CURRENT];
         total = g_Downloads[g_iCurrentDownload][DL_TOTAL];
@@ -1491,7 +1487,7 @@ void SendCurrentStatus()
         {
             int iTotal = GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]);
             int iCurrent = g_Downloads[g_iCurrentDownload][DL_FINISH];
-            per = (float(iCurrent / iTotal) * 100.0);
+            per = (float(iCurrent) / iTotal) * 100.0;
 
 
             // We always need a lot of percent signs^^
@@ -1522,7 +1518,7 @@ void SendCurrentStatus()
             }
             else if (g_hHudSync != null)
             {
-                Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
+                Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB\n%i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
             }
             else if (StrEqual(g_sGame, "dods", false))
             {
@@ -1583,7 +1579,7 @@ void SendCurrentStatus()
     // Prepare Hud text
     if (g_hHudSync != null)
     {
-        SetHudTextParams(-1.0, 0.75, holdTime, g_iShowColor[0], g_iShowColor[1], g_iShowColor[2], g_iShowColor[3], 0, 0.0, 0.0, 0.0);
+        SetHudTextParams(-1.0, 0.75, 15.0, g_iShowColor[0], g_iShowColor[1], g_iShowColor[2], g_iShowColor[3], 0, 0.0, 0.0, 0.0);
     }
 
 
@@ -1595,22 +1591,19 @@ void SendCurrentStatus()
         {
             if (g_Downloads[g_iCurrentDownload][DL_MODE] != MODUS_FINISH)
             {
-                // Format the message
-                Format(queue, sizeof(queue), "%T", "Queue", i, g_iTotalDownloads - g_iCurrentDownload - 1);
-
                 // Csgo need extra formating
                 if (!StrEqual(g_sGame, "csgo", false))
                 {
-                    Format(message, sizeof(message), "%T: %s\n%s\n%s\n%s", g_sModes[g_Downloads[g_iCurrentDownload][DL_MODE]], i, g_Downloads[g_iCurrentDownload][DL_NAME], bar, percent, queue);
+                    Format(message, sizeof(message), "%T: %s\n%s\n%s\n%s", g_sModes[g_Downloads[g_iCurrentDownload][DL_MODE]], i, g_Downloads[g_iCurrentDownload][DL_NAME], bar, percent);
                 }
                 else
                 {
-                    Format(message, sizeof(message), "%T\n%s\n%s", g_sModes[g_Downloads[g_iCurrentDownload][DL_MODE]], i, percent, queue);
+                    Format(message, sizeof(message), "%T\n%s\n", g_sModes[g_Downloads[g_iCurrentDownload][DL_MODE]], i, percent);
                 }
             }
             else
             {
-                Format(message, sizeof(message), "%T", "FinishHint", i, g_Downloads[g_iCurrentDownload][DL_NAME]);
+                Format(message, sizeof(message), "%T", "FinishHint", i);
             }
 
 
