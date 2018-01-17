@@ -54,9 +54,9 @@
 
 
 
-// Using Semicolons
+// Using semicolons ands new api
 #pragma semicolon 1
-
+#pragma newdecls required
 
 
 
@@ -108,6 +108,7 @@ enum Modus
 
 
 // List of download information
+// Use old syntax here, otherwise enums like this won't work anymore ):
 enum DownloadInfo
 {
     DL_CLIENT,                                  // Client of current download
@@ -130,96 +131,94 @@ enum DownloadInfo
 
 
 // Global download list
-new g_Downloads[20][DownloadInfo];
+int g_Downloads[20][DownloadInfo];
 
 
 // Global strings
-new String:g_sVersion[] = "2.3.0";
-new String:g_sModes[][] = {"Downloading", "Uploading", "Compressing"};
-new String:g_sGameSearch[64];
-new String:g_sClientConfig[MAXPLAYERS + 1][256];
-new String:g_sPluginPath[PLATFORM_MAX_PATH + 1];
-new String:g_sCommand[32];
-new String:g_sCommandCustom[32];
-new String:g_sCommandDownload[32];
-new String:g_sFTPCommand[32];
-new String:g_sTag[32];
-new String:g_sTagChat[64];
-new String:g_sFlag[32];
-new String:g_sFTPHost[128];
-new String:g_sFTPUser[64];
-new String:g_sFTPPW[128];
-new String:g_sFTPPath[PLATFORM_MAX_PATH + 1];
-new String:g_sGame[12];
-new String:g_sSearch[MAXPLAYERS + 1][NUMBER_ELEMENTS][128];
-new String:g_sLogin[MAXPLAYERS + 1][2][64];
-new String:g_sWhitelistMaps[1024];
-new String:g_sBlacklistMaps[1024];
-new String:g_sWhitelistCategories[1024];
-new String:g_sBlacklistCategories[1024];
-new String:g_sLogPath[PLATFORM_MAX_PATH + 1];
+char g_sVersion[] = "2.3.0";
+char g_sModes[][] = {"Downloading", "Uploading", "Compressing"};
+char g_sGameSearch[64];
+char g_sClientConfig[MAXPLAYERS + 1][256];
+char g_sPluginPath[PLATFORM_MAX_PATH + 1];
+char g_sCommand[32];
+char g_sCommandCustom[32];
+char g_sCommandDownload[32];
+char g_sFTPCommand[32];
+char g_sTag[32];
+char g_sTagChat[64];
+char g_sFlag[32];
+char g_sFTPHost[128];
+char g_sFTPUser[64];
+char g_sFTPPW[128];
+char g_sFTPPath[PLATFORM_MAX_PATH + 1];
+char g_sGame[12];
+char g_sSearch[MAXPLAYERS + 1][NUMBER_ELEMENTS][128];
+char g_sLogin[MAXPLAYERS + 1][2][64];
+char g_sWhitelistMaps[1024];
+char g_sBlacklistMaps[1024];
+char g_sWhitelistCategories[1024];
+char g_sBlacklistCategories[1024];
+char g_sLogPath[PLATFORM_MAX_PATH + 1];
 
 
 // Global bools
-new bool:g_bShow;
-new bool:g_bMapCycle;
-new bool:g_bNotice;
-new bool:g_bFTP;
-new bool:g_bFTPLogin;
-new bool:g_bFirst;
-new bool:g_bUpdate;
-new bool:g_bUpdateDB;
-new bool:g_bDBLoaded;
-new bool:g_bSearch;
-new bool:g_bDownloadList;
-new bool:g_bUseCustom;
-new bool:g_bClientprefsAvailable;
+bool g_bShow;
+bool g_bMapCycle;
+bool g_bNotice;
+bool g_bFTP;
+bool g_bFTPLogin;
+bool g_bFirst;
+bool g_bUpdate;
+bool g_bUpdateDB;
+bool g_bDBLoaded;
+bool g_bSearch;
+bool g_bDownloadList;
+bool g_bUseCustom;
+bool g_bClientprefsAvailable;
 
 
 // Global ints
-new g_iFTPPort;
-new g_iTotalDownloads;
-new g_iCurrentDownload;
-new g_iShowColor[4];
-new g_iLast[MAXPLAYERS + 1][2];
-new g_iCurrentNotice;
-new g_iDatabaseRetries;
-new g_iDatabaseTries;
+int g_iFTPPort;
+int g_iTotalDownloads;
+int g_iCurrentDownload;
+int g_iShowColor[4];
+int g_iLast[MAXPLAYERS + 1][2];
+int g_iCurrentNotice;
+int g_iDatabaseRetries;
+int g_iDatabaseTries;
 
 
 // Global handles
-new Handle:g_hSearch;
-new Handle:g_hCommand;
-new Handle:g_hCommandCustom;
-new Handle:g_hCommandDownload;
-new Handle:g_hUpdate;
-new Handle:g_hUpdateDB;
-new Handle:g_hTag;
-new Handle:g_hFlag;
-new Handle:g_hShow;
-new Handle:g_hShowColor;
-new Handle:g_hMapCycle;
-new Handle:g_hNotice;
-new Handle:g_hFTP;
-new Handle:g_hFTPHost;
-new Handle:g_hFTPUser;
-new Handle:g_hFTPPW;
-new Handle:g_hFTPPort;
-new Handle:g_hFTPPath;
-new Handle:g_hDatabase;
-new Handle:g_hHudSync;
-new Handle:g_hDownloadList;
-new Handle:g_hFTPLogin;
-new Handle:g_hFTPCommand;
-new Handle:g_hDatabaseRetries;
-new Handle:g_hConfigCookie;
-
-
+ConVar g_hSearch;
+ConVar g_hCommand;
+ConVar g_hCommandCustom;
+ConVar g_hCommandDownload;
+ConVar g_hUpdate;
+ConVar g_hUpdateDB;
+ConVar g_hTag;
+ConVar g_hFlag;
+ConVar g_hShow;
+ConVar g_hShowColor;
+ConVar g_hMapCycle;
+ConVar g_hNotice;
+ConVar g_hFTP;
+ConVar g_hFTPHost;
+ConVar g_hFTPUser;
+ConVar g_hFTPPW;
+ConVar g_hFTPPort;
+ConVar g_hFTPPath;
+Database g_hDatabase;
+Handle g_hHudSync;
+ConVar g_hDownloadList;
+ConVar g_hFTPLogin;
+ConVar g_hFTPCommand;
+ConVar g_hDatabaseRetries;
+Handle g_hConfigCookie;
 
 
 // Database querys
 // Check if database is valid
-new String:g_sDatabaseCheck[] = "SELECT \
+char g_sDatabaseCheck[] = "SELECT \
                         `mapdl_categories_v2`.`id`, `mapdl_categories_v2`.`name`, `mapdl_categories_v2`.`game`, \
                         `mapdl_maps_v2`.`id`,  `mapdl_maps_v2`.`categories_id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, \
                         `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
@@ -228,60 +227,60 @@ new String:g_sDatabaseCheck[] = "SELECT \
 
 
 // Check if database is current version
-new String:g_sDatabaseCheckVersion[] = "SELECT `table_version` FROM `mapdl_info_v2`";
+char g_sDatabaseCheckVersion[] = "SELECT `table_version` FROM `mapdl_info_v2`";
 
 
 // Get all categories
-new String:g_sAllCategories[] = "SELECT \
+char g_sAllCategories[] = "SELECT \
                         `mapdl_categories_v2`.`id`, `mapdl_categories_v2`.`name`, COUNT(`mapdl_maps_v2`.`name`) FROM `mapdl_categories_v2`, `mapdl_maps_v2` \
                         WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_categories_v2`.`id`=`mapdl_maps_v2`.`categories_id` %s%s%s%s GROUP BY `mapdl_categories_v2`.`name`";
 
 
 // Search for a category by name
-new String:g_sSearchCategories[] = "SELECT \
+char g_sSearchCategories[] = "SELECT \
                         `mapdl_categories_v2`.`id`, `mapdl_categories_v2`.`name`, COUNT(`mapdl_maps_v2`.`name`) FROM `mapdl_categories_v2`, `mapdl_maps_v2` \
                         WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_categories_v2`.`id`=`mapdl_maps_v2`.`categories_id` AND `mapdl_maps_v2`.`name` \
                         LIKE '%s' ESCAPE '?' %s%s%s%s GROUP BY `mapdl_categories_v2`.`name`";
 
 
 // Get all maps
-new String:g_sAllMaps[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+char g_sAllMaps[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
                         `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
                         WHERE `mapdl_maps_v2`.`categories_id`=%i AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s %s";
 
 
 // Search for a map by name
-new String:g_sSearchMapsByName[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+char g_sSearchMapsByName[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
                         `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
                         WHERE `mapdl_maps_v2`.`name` LIKE '%s' ESCAPE '?' AND `mapdl_maps_v2`.`categories_id`=%i AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s %s";
 
 
 // Search for a map by date
-new String:g_sSearchMapsByDate[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+char g_sSearchMapsByDate[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
                         `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
                         WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY `mapdl_maps_v2`.`date` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC LIMIT 100";
 
 
 // Search for a map by last modification date
-new String:g_sSearchMapsByMDate[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+char g_sSearchMapsByMDate[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
                         `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
                         WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`date` != `mapdl_maps_v2`.`mdate` AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY `mapdl_maps_v2`.`mdate`DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC  LIMIT 100";
 
 
 // Search for a map by downloads
-new String:g_sSearchMapsByDownloads[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+char g_sSearchMapsByDownloads[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
                         `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
                         WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY `mapdl_maps_v2`.`downloads` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC LIMIT 100";
 
 
 // Search for a map by views
-new String:g_sSearchMapsByViews[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+char g_sSearchMapsByViews[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
                         `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
                         WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY `mapdl_maps_v2`.`views` DESC, cast(`mapdl_maps_v2`.`rating` as float) DESC LIMIT 100";
 
 
 // Search for a map by rating
-new String:g_sSearchMapsByRating[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
+char g_sSearchMapsByRating[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v2`.`date`, `mapdl_maps_v2`.`mdate`, `mapdl_maps_v2`.`downloads`, `mapdl_maps_v2`.`rating`, `mapdl_maps_v2`.`votes`, \
                         `mapdl_maps_v2`.`views`, `mapdl_maps_v2`.`name`, `mapdl_maps_v2`.`download`, `mapdl_maps_v2`.`size`, `mapdl_categories_v2`.`game` FROM `mapdl_maps_v2`, `mapdl_categories_v2` \
                         WHERE `mapdl_categories_v2`.`game` IN %s AND `mapdl_maps_v2`.`categories_id` = `mapdl_categories_v2`.`id` %s%s%s%s GROUP BY `mapdl_maps_v2`.`name` ORDER BY cast(`mapdl_maps_v2`.`rating` as float) DESC, `mapdl_maps_v2`.`votes` DESC LIMIT 100";
 
@@ -291,49 +290,49 @@ new String:g_sSearchMapsByRating[] = "SELECT `mapdl_maps_v2`.`id`, `mapdl_maps_v
 
 
 // Create Customs
-new String:g_sCreateCustom[] = "CREATE TABLE IF NOT EXISTS `mapdl_custom` \
+char g_sCreateCustom[] = "CREATE TABLE IF NOT EXISTS `mapdl_custom` \
                         (`id` integer PRIMARY KEY, `name` varchar(255) NOT NULL, `url` varchar(255) NOT NULL, UNIQUE (name, url))";
 
 
 // Create Customs maps
-new String:g_sCreateCustomMaps[] = "CREATE TABLE IF NOT EXISTS `mapdl_custom_maps` \
+char g_sCreateCustomMaps[] = "CREATE TABLE IF NOT EXISTS `mapdl_custom_maps` \
                         (`custom_id` tinyint NOT NULL, `file` varchar(128) NOT NULL, UNIQUE (custom_id, file))";
 
 
 // Insert name and urls
-new String:g_InsertCustom[] = "INSERT INTO `mapdl_custom` \
+char g_InsertCustom[] = "INSERT INTO `mapdl_custom` \
                         (`id`, `name`, `url`) VALUES (NULL, '%s', '%s')";
 
 
 // Insert Maps
-new String:g_InsertCustomMaps[] = "INSERT INTO `mapdl_custom_maps` (`custom_id`, `file`) \
+char g_InsertCustomMaps[] = "INSERT INTO `mapdl_custom_maps` (`custom_id`, `file`) \
                         SELECT `mapdl_custom`.`id`, '%s' FROM `mapdl_custom` WHERE `mapdl_custom`.`name` = '%s'";
 
 
 // Get custom urls
-new String:g_sAllCustom[] = "SELECT `mapdl_custom`.`id`, `mapdl_custom`.`name`, COUNT(`mapdl_custom_maps`.`file`) FROM `mapdl_custom_maps`, `mapdl_custom` \
+char g_sAllCustom[] = "SELECT `mapdl_custom`.`id`, `mapdl_custom`.`name`, COUNT(`mapdl_custom_maps`.`file`) FROM `mapdl_custom_maps`, `mapdl_custom` \
                         WHERE `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom`.`name`";
 
 
 // Get custom urls search
-new String:g_sSearchCustom[] = "SELECT `mapdl_custom`.`id`, `mapdl_custom`.`name`, COUNT(`mapdl_custom_maps`.`file`) FROM `mapdl_custom_maps`, `mapdl_custom` \
+char g_sSearchCustom[] = "SELECT `mapdl_custom`.`id`, `mapdl_custom`.`name`, COUNT(`mapdl_custom_maps`.`file`) FROM `mapdl_custom_maps`, `mapdl_custom` \
                         WHERE `mapdl_custom_maps`.`file` LIKE '%s' ESCAPE '?' AND `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom`.`name`";
 
 
 // Get custom maps
-new String:g_sAllCustomMaps[] = "SELECT `mapdl_custom_maps`.`file`, `mapdl_custom`.`url` FROM `mapdl_custom_maps`, `mapdl_custom` \
+char g_sAllCustomMaps[] = "SELECT `mapdl_custom_maps`.`file`, `mapdl_custom`.`url` FROM `mapdl_custom_maps`, `mapdl_custom` \
                         WHERE `mapdl_custom_maps`.`custom_id`=%i AND `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom_maps`.`file`";
 
 
 // Get custom maps search
-new String:g_sSearchCustomMaps[] = "SELECT `mapdl_custom_maps`.`file`, `mapdl_custom`.`url` FROM `mapdl_custom_maps`, `mapdl_custom` \
+char g_sSearchCustomMaps[] = "SELECT `mapdl_custom_maps`.`file`, `mapdl_custom`.`url` FROM `mapdl_custom_maps`, `mapdl_custom` \
                         WHERE `mapdl_custom_maps`.`file` LIKE '%s' ESCAPE '?' AND `mapdl_custom_maps`.`custom_id`=%i AND `mapdl_custom`.`id` = `mapdl_custom_maps`.`custom_id` %s%s GROUP BY `mapdl_custom_maps`.`file`";
 
 
 
 
 // Global info
-public Plugin:myinfo =
+public Plugin myinfo =
 {
     name = "Ingame Map Download",
     author = "dordnung",
@@ -357,7 +356,7 @@ MAIN METHODS
 
 
 // Plugin started
-public OnPluginStart()
+public void OnPluginStart()
 {
     // Load Translation
     LoadTranslations("core.phrases");
@@ -419,55 +418,55 @@ public OnPluginStart()
 
 
 // Config is executed
-public OnConfigsExecuted()
+public void OnConfigsExecuted()
 {
-    decl String:showColor[32];
-    decl String:showColorExploded[4][12];
+    char showColor[32];
+    char showColorExploded[4][12];
 
     // Read all convars
     // Ints
-    g_iFTPPort = GetConVarInt(g_hFTPPort);
+    g_iFTPPort = g_hFTPPort.IntValue;
 
 
     // Bools
-    g_bNotice = GetConVarBool(g_hNotice);
-    g_bShow = GetConVarBool(g_hShow);
-    g_bMapCycle = GetConVarBool(g_hMapCycle);
-    g_bFTP = GetConVarBool(g_hFTP);
-    g_bFTPLogin = (GetConVarBool(g_hFTPLogin) && g_bFTP);
-    g_bUpdate = GetConVarBool(g_hUpdate);
-    g_bUpdateDB = GetConVarBool(g_hUpdateDB);
-    g_bSearch = GetConVarBool(g_hSearch);
-    g_bDownloadList = GetConVarBool(g_hDownloadList);
-    g_iDatabaseRetries = GetConVarBool(g_hDatabaseRetries);
+    g_bNotice = g_hNotice.BoolValue;
+    g_bShow = g_hShow.BoolValue;
+    g_bMapCycle = g_hMapCycle.BoolValue;
+    g_bFTP = g_hFTP.BoolValue;
+    g_bFTPLogin = (g_hFTPLogin.BoolValue && g_bFTP);
+    g_bUpdate = g_hUpdate.BoolValue;
+    g_bUpdateDB = g_hUpdateDB.BoolValue;
+    g_bSearch = g_hSearch.BoolValue;
+    g_bDownloadList = g_hDownloadList.BoolValue;
+    g_iDatabaseRetries = g_hDatabaseRetries.BoolValue;
 
 
     // Strings
-    GetConVarString(g_hShowColor, showColor, sizeof(showColor));
-    GetConVarString(g_hCommand, g_sCommand, sizeof(g_sCommand));
-    GetConVarString(g_hCommandCustom, g_sCommandCustom, sizeof(g_sCommandCustom));
-    GetConVarString(g_hCommandDownload, g_sCommandDownload, sizeof(g_sCommandDownload));
-    GetConVarString(g_hFTPCommand, g_sFTPCommand, sizeof(g_sFTPCommand));
-    GetConVarString(g_hTag, g_sTag, sizeof(g_sTag));
-    GetConVarString(g_hFlag, g_sFlag, sizeof(g_sFlag));
-    GetConVarString(g_hFTPHost, g_sFTPHost, sizeof(g_sFTPHost));
-    GetConVarString(g_hFTPUser, g_sFTPUser, sizeof(g_sFTPUser));
-    GetConVarString(g_hFTPPW, g_sFTPPW, sizeof(g_sFTPPW));
-    GetConVarString(g_hFTPPath, g_sFTPPath, sizeof(g_sFTPPath));
+    g_hShowColor.GetString(showColor, sizeof(showColor));
+    g_hCommand.GetString(g_sCommand, sizeof(g_sCommand));
+    g_hCommandCustom.GetString(g_sCommandCustom, sizeof(g_sCommandCustom));
+    g_hCommandDownload.GetString(g_sCommandDownload, sizeof(g_sCommandDownload));
+    g_hFTPCommand.GetString(g_sFTPCommand, sizeof(g_sFTPCommand));
+    g_hTag.GetString(g_sTag, sizeof(g_sTag));
+    g_hFlag .GetString(g_sFlag, sizeof(g_sFlag));
+    g_hFTPHost.GetString(g_sFTPHost, sizeof(g_sFTPHost));
+    g_hFTPUser.GetString(g_sFTPUser, sizeof(g_sFTPUser));
+    g_hFTPPW.GetString(g_sFTPPW, sizeof(g_sFTPPW));
+    g_hFTPPath.GetString(g_sFTPPath, sizeof(g_sFTPPath));
 
 
     // Hud Sync
     g_hHudSync = CreateHudSynchronizer();
 
     // Explode Colors
-    new found = ExplodeString(showColor, ",", showColorExploded, sizeof(showColorExploded), sizeof(showColorExploded[]));
+    int found = ExplodeString(showColor, ",", showColorExploded, sizeof(showColorExploded), sizeof(showColorExploded[]));
 
     if (found == 4)
     {
-        new r = StringToInt(showColorExploded[0]);
-        new g = StringToInt(showColorExploded[1]);
-        new b = StringToInt(showColorExploded[2]);
-        new a = StringToInt(showColorExploded[3]);
+        int r = StringToInt(showColorExploded[0]);
+        int g = StringToInt(showColorExploded[1]);
+        int b = StringToInt(showColorExploded[2]);
+        int a = StringToInt(showColorExploded[3]);
 
         if (r < 0 || r > 255)
         {
@@ -527,9 +526,10 @@ public OnConfigsExecuted()
 
 
     // Disable Hud Hint sound
-    if (FindConVar("sv_hudhint_sound") != INVALID_HANDLE)
+    ConVar cvar = FindConVar("sv_hudhint_sound");
+    if (cvar != null)
     {
-        SetConVarInt(FindConVar("sv_hudhint_sound"), 0);
+        cvar.SetInt(0);
     }
 
     // First start?
@@ -586,7 +586,7 @@ public OnConfigsExecuted()
 
 
 // All plugins are loaded now
-public OnAllPluginsLoaded()
+public void OnAllPluginsLoaded()
 {
     // Is system2 extension here?
     if (!LibraryExists("system2"))
@@ -599,11 +599,11 @@ public OnAllPluginsLoaded()
 
 
 // Logging Stuff
-Log(String:fmt[], any:...)
+void Log(char[] fmt, any ...)
 {
-    decl String:format[1024];
-    decl String:file[PLATFORM_MAX_PATH + 1];
-    decl String:currentDate[32];
+    char format[1024];
+    char file[PLATFORM_MAX_PATH + 1];
+    char currentDate[32];
 
     VFormat(format, sizeof(format), fmt, 2);
     FormatTime(currentDate, sizeof(currentDate), "%d-%m-%y");
@@ -617,9 +617,9 @@ Log(String:fmt[], any:...)
 
 
 // Client cookies are cached
-public OnClientCookiesCached(client)
+public void OnClientCookiesCached(int client)
 {
-    new config = GetClientConfigCookie(client);
+    int config = GetClientConfigCookie(client);
 
     switch(config)
     {
@@ -679,9 +679,9 @@ public OnClientCookiesCached(client)
 
 
 // Set Title at search
-SetTitleWithCookie(client)
+void SetTitleWithCookie(int client)
 {
-    new config = GetClientConfigCookie(client);
+    int config = GetClientConfigCookie(client);
 
     switch(config)
     {
@@ -741,12 +741,12 @@ SetTitleWithCookie(client)
 
 
 // Gets the Client cookie
-GetClientConfigCookie(client)
+int GetClientConfigCookie(int client)
 {
     // Only with clientprefs
     if (g_bClientprefsAvailable && IsClientValid(client) && AreClientCookiesCached(client))
     {
-        decl String:buffer[8];
+        char buffer[8];
 
         GetClientCookie(client, g_hConfigCookie, buffer, sizeof(buffer));
 
@@ -760,7 +760,7 @@ GetClientConfigCookie(client)
 
 
 // Prepare folders and connect to database
-PreparePlugin()
+void PreparePlugin()
 {
     // Build plugin paths
     BuildPath(Path_SM, g_sPluginPath, sizeof(g_sPluginPath), "data/mapdownload");
@@ -839,7 +839,7 @@ PreparePlugin()
     }
     else
     {
-        decl String:path[PLATFORM_MAX_PATH + 1];
+        char path[PLATFORM_MAX_PATH + 1];
 
         // Path to sql file
         BuildPath(Path_SM, path, sizeof(path), "data/sqlite/gamebanana.sq3");
@@ -854,30 +854,27 @@ PreparePlugin()
 
 
 // Prepare folders and connect to database
-ParseDownloadList()
+void ParseDownloadList()
 {
     // Parse Downloadlist
     if (g_bDownloadList)
     {
-        decl String:dllistFile[PLATFORM_MAX_PATH + 1];
-        decl String:readbuffer[64];
-
-        new Handle:file;
-
+        char dllistFile[PLATFORM_MAX_PATH + 1];
+        char readbuffer[64];
 
         // Path to downloadlist
         BuildPath(Path_SM, dllistFile, sizeof(dllistFile), "data/mapdownload/downloadlist.txt");
 
 
         // Open file
-        file = OpenFile(dllistFile, "rb");
+        File file = OpenFile(dllistFile, "rb");
 
 
         // We could open file
-        if (file != INVALID_HANDLE)
+        if (file != null)
         {
             // Loop through file content
-            while (!IsEndOfFile(file) && ReadFileLine(file, readbuffer, sizeof(readbuffer)))
+            while (!file.EndOfFile() && file.ReadLine(readbuffer, sizeof(readbuffer)))
             {
                 // Replace line ends
                 ReplaceString(readbuffer, sizeof(readbuffer), "\n", "");
@@ -898,7 +895,7 @@ ParseDownloadList()
 
 
             // Close File
-            CloseHandle(file);
+            file.Close();
         }
     }
 }
@@ -906,7 +903,7 @@ ParseDownloadList()
 
 
 // Create DB Connection
-public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow, Float:ultotal, Float:ulnow)
+public void PrepareDB(bool finished, const char[] error, float dltotal, float dlnow, float ultotal, float ulnow)
 {
     if (finished)
     {
@@ -923,7 +920,7 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
                     g_iDatabaseTries++;
 
                     // Retrie
-                    decl String:path[PLATFORM_MAX_PATH + 1];
+                    char path[PLATFORM_MAX_PATH + 1];
 
                     // Path to sql file
                     BuildPath(Path_SM, path, sizeof(path), "data/sqlite/gamebanana.sq3");
@@ -945,27 +942,27 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
         }
 
 
-        decl String:sqlError[256];
+        char sqlError[256];
 
 
         // Connect to database
-        new Handle:dbHandle = CreateKeyValues("Databases");
+        KeyValues dbValue = new KeyValues("Databases");
         
-        KvSetString(dbHandle, "driver", "sqlite");
-        KvSetString(dbHandle, "host", "localhost");
-        KvSetString(dbHandle, "database", "gamebanana");
-        KvSetString(dbHandle, "user", "root");
+        dbValue.SetString("driver", "sqlite");
+        dbValue.SetString("host", "localhost");
+        dbValue.SetString("database", "gamebanana");
+        dbValue.SetString("user", "root");
 
         // Connect
-        g_hDatabase = SQL_ConnectCustom(dbHandle, sqlError, sizeof(sqlError), true);
+        g_hDatabase = SQL_ConnectCustom(dbValue, sqlError, sizeof(sqlError), true);
 
 
         // Close Keyvalues
-        CloseHandle(dbHandle);
+        delete dbValue;
 
 
         // Check valid connection
-        if (g_hDatabase == INVALID_HANDLE)
+        if (g_hDatabase == null)
         {
             // Log error and stop plugin
             LogError("Map Download couldn't connect to the Database! Error: %s", sqlError);
@@ -974,14 +971,14 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
         else
         {
             // Create Transaction
-            new Handle:txn = SQL_CreateTransaction();
+            Transaction txn = new Transaction();
 
-            SQL_AddQuery(txn, g_sDatabaseCheck, 1);
-            SQL_AddQuery(txn, g_sDatabaseCheckVersion, 2);
-            SQL_AddQuery(txn, g_sCreateCustom, 3);
-            SQL_AddQuery(txn, g_sCreateCustomMaps, 4);
+            txn.AddQuery(g_sDatabaseCheck, 1);
+            txn.AddQuery(g_sDatabaseCheckVersion, 2);
+            txn.AddQuery(g_sCreateCustom, 3);
+            txn.AddQuery(g_sCreateCustomMaps, 4);
 
-            SQL_ExecuteTransaction(g_hDatabase, txn, OnDBStartedUp, OnDBStartUpFailed);
+            g_hDatabase.Execute(txn, OnDBStartedUp, OnDBStartUpFailed);
         }
     }
 }
@@ -989,14 +986,14 @@ public PrepareDB(bool:finished, const String:error[], Float:dltotal, Float:dlnow
 
 
 // Everything is started up
-public OnDBStartedUp(Handle:db, any:data, numQueries, Handle:results[], any:queryData[])
+public void OnDBStartedUp(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-    for (new i=0; i < numQueries; i++)
+    for (int i=0; i < numQueries; i++)
     {
         if (queryData[i] == 1)
         {
             // Check valid database
-            if (!SQL_FetchRow(results[i]))
+            if (!results[i].FetchRow())
             {
                 LogError("Map Download database seems to be empty!");
             }
@@ -1004,15 +1001,15 @@ public OnDBStartedUp(Handle:db, any:data, numQueries, Handle:results[], any:quer
 
         if (queryData[i] == 2)
         {
-            decl String:version[16];
+            char version[16];
 
             // Check valid database version
-            if (!SQL_FetchRow(results[i]))
+            if (!results[i].FetchRow())
             {
                 LogError("Your Map Download database seems to be outdated!");
             }
 
-            SQL_FetchString(results[i], 0, version, sizeof(version));
+            results[i].FetchString(0, version, sizeof(version));
 
             if (!StrEqual(version, TABLE_VERSION, false))
             {
@@ -1031,7 +1028,7 @@ public OnDBStartedUp(Handle:db, any:data, numQueries, Handle:results[], any:quer
 
 
 // start up failed
-public OnDBStartUpFailed(Handle:db, any:data, numQueries, const String:error[], failIndex, any:queryData[])
+public void OnDBStartUpFailed(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
 {
     LogError("Map Download couldn't prepare the Database. Error: '%s'", error);
 
@@ -1047,11 +1044,11 @@ public OnDBStartUpFailed(Handle:db, any:data, numQueries, const String:error[], 
 
 
 // Parse the white,black and customlist
-ParseLists()
+void ParseLists()
 {
-    decl String:listPath[PLATFORM_MAX_PATH + 1];
+    char listPath[PLATFORM_MAX_PATH + 1];
 
-    new Handle:listHandle = CreateKeyValues("MapDownloadLists");
+    KeyValues listKeyValue = new KeyValues("MapDownloadLists");
 
     // Path
     BuildPath(Path_SM, listPath, sizeof(listPath), "configs/mapdownload_lists.cfg");
@@ -1066,31 +1063,31 @@ ParseLists()
 
 
     // Load the file to keyvalue
-    FileToKeyValues(listHandle, listPath);
+    listKeyValue.ImportFromFile(listPath);
     
 
     // First key categories
-    if (KvJumpToKey(listHandle, "categories") &&  KvGotoFirstSubKey(listHandle, false))
+    if (listKeyValue.JumpToKey("categories") && listKeyValue.GotoFirstSubKey(false))
     {
         // Loop through all items
         do
         {
-            decl String:section[128];
-            decl String:search[128];
-            decl String:searchBuffer[256];
-            decl String:searchFinal[256];
+            char section[128];
+            char search[128];
+            char searchBuffer[256];
+            char searchFinal[256];
 
 
             // Get Section and key
-            KvGetSectionName(listHandle, section, sizeof(section));
-            KvGetString(listHandle, NULL_STRING, search, sizeof(search));
+            listKeyValue.GetSectionName(section, sizeof(section));
+            listKeyValue.GetString(NULL_STRING, search, sizeof(search));
 
 
             // Any data?
             if (!StrEqual(search, ""))
             {
                 // Escape search
-                SQL_EscapeString(g_hDatabase, search, searchBuffer, sizeof(searchBuffer));
+                g_hDatabase.Escape(search, searchBuffer, sizeof(searchBuffer));
                 EscapeString(searchBuffer, '_', '?', searchFinal, sizeof(searchFinal));
 
 
@@ -1117,7 +1114,7 @@ ParseLists()
                 }
             }
         }
-        while (KvGotoNextKey(listHandle, false));
+        while (listKeyValue.GotoNextKey(false));
 
         if (strlen(g_sWhitelistCategories) > 0)
         {
@@ -1127,31 +1124,31 @@ ParseLists()
 
 
     // Rewind
-    KvRewind(listHandle);
+    listKeyValue.Rewind();
 
 
     // First key maps
-    if (KvJumpToKey(listHandle, "maps") &&  KvGotoFirstSubKey(listHandle, false))
+    if (listKeyValue.JumpToKey("maps") &&  listKeyValue.GotoFirstSubKey(false))
     {
         // Loop through all items
         do
         {
-            decl String:section[128];
-            decl String:search[128];
-            decl String:searchBuffer[256];
-            decl String:searchFinal[256];
+            char section[128];
+            char search[128];
+            char searchBuffer[256];
+            char searchFinal[256];
 
 
             // Get Section and key
-            KvGetSectionName(listHandle, section, sizeof(section));
-            KvGetString(listHandle, NULL_STRING, search, sizeof(search));
+            listKeyValue.GetSectionName(section, sizeof(section));
+            listKeyValue.GetString(NULL_STRING, search, sizeof(search));
 
 
             // Any data?
             if (!StrEqual(search, ""))
             {
                 // Escape search
-                SQL_EscapeString(g_hDatabase, search, searchBuffer, sizeof(searchBuffer));
+                g_hDatabase.Escape(search, searchBuffer, sizeof(searchBuffer));
                 EscapeString(searchBuffer, '_', '?', searchFinal, sizeof(searchFinal));
 
 
@@ -1179,7 +1176,7 @@ ParseLists()
                 }
             }
         } 
-        while (KvGotoNextKey(listHandle, false));
+        while (listKeyValue.GotoNextKey(false));
 
         if (strlen(g_sWhitelistMaps) > 0)
         {
@@ -1189,27 +1186,27 @@ ParseLists()
 
 
     // Rewind
-    KvRewind(listHandle);
+    listKeyValue.Rewind();
 
 
     // Goto custom urls
-    if (KvJumpToKey(listHandle, "customurls") &&  KvGotoFirstSubKey(listHandle, false))
+    if (listKeyValue.JumpToKey("customurls") &&  listKeyValue.GotoFirstSubKey(false))
     {
-        new Handle:sectionArray = CreateArray(128);
-        new Handle:txn = SQL_CreateTransaction();
+        ArrayList sectionArray = new ArrayList(128);
+        Transaction txn = new Transaction();
 
         // Loop through all items
         do
         {
-            decl String:query[1024];
-            decl String:section[128];
-            decl String:search[128];
-            decl String:sectionBuffer[256];
+            char query[1024];
+            char section[128];
+            char search[128];
+            char sectionBuffer[256];
 
 
             // Get Section and key
-            KvGetSectionName(listHandle, section, sizeof(section));
-            KvGetString(listHandle, NULL_STRING, search, sizeof(search));
+            listKeyValue.GetSectionName(section, sizeof(section));
+            listKeyValue.GetString(NULL_STRING, search, sizeof(search));
 
 
             // Any data?
@@ -1226,42 +1223,44 @@ ParseLists()
                 }
 
                 // Escape strings
-                SQL_EscapeString(g_hDatabase, section, sectionBuffer, sizeof(sectionBuffer));
+                g_hDatabase.Escape(section, sectionBuffer, sizeof(sectionBuffer));
 
 
                 // Get result of insert
                 Format(query, sizeof(query), g_InsertCustom, sectionBuffer, search);
-                SQL_AddQuery(txn, query);
+                txn.AddQuery(query);
 
 
                 // Push Name in
-                PushArrayString(sectionArray, sectionBuffer);
-                PushArrayString(sectionArray, search);
+                sectionArray.PushString(sectionBuffer);
+                sectionArray.PushString(search);
             }
         } 
-        while (KvGotoNextKey(listHandle, false));
+        while (listKeyValue.GotoNextKey(false));
 
-        SQL_ExecuteTransaction(g_hDatabase, txn, OnAddedCustomUrls, OnAddedCustomUrlsFailed, sectionArray);
+        g_hDatabase.Execute(txn, OnAddedCustomUrls, OnAddedCustomUrlsFailed, sectionArray);
     }
 
-    CloseHandle(listHandle);
+    delete listKeyValue;
 }
 
 
 
 // All Custom Urls added
-public OnAddedCustomUrls(Handle:db, any:data, numQueries, Handle:results[], any:queryData[])
+public void OnAddedCustomUrls(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
-    decl String:sectionBuffer[128];
-    decl String:search[128];
+    char sectionBuffer[128];
+    char search[128];
 
-    for (new i=0; i < numQueries; i++)
+    ArrayList array = view_as<ArrayList>(data);
+
+    for (int i=0; i < numQueries; i++)
     {
-        GetArrayString(data, i, sectionBuffer, sizeof(sectionBuffer));
-        GetArrayString(data, i+1, search, sizeof(search));
+        array.GetString(i, sectionBuffer, sizeof(sectionBuffer));
+        array.GetString(i+1, search, sizeof(search));
 
         // We need a handle to give with
-        new Handle:nameArray = CreateArray(128, 0);
+        ArrayList nameArray = new ArrayList(128, 0);
 
         // Push Name in
         PushArrayString(nameArray, sectionBuffer);
@@ -1272,46 +1271,46 @@ public OnAddedCustomUrls(Handle:db, any:data, numQueries, Handle:results[], any:
         System2_GetPage(OnGetPage, search, "", "Ingame Map Download Searcher", nameArray);
     }
 
-    CloseHandle(data);
+    delete array;
 }
 
 
 
 // Custom urls couldn't be add
-public OnAddedCustomUrlsFailed(Handle:db, any:data, numQueries, const String:error[], failIndex, any:queryData[])
+public void OnAddedCustomUrlsFailed(Database db, any data, int numQueries, const char[] error, int failIndex, any[] queryData)
 {
-    CloseHandle(data);
+    delete view_as<ArrayList>(data);
 
     LogError("Map Download couldn't add custom urls. Error: '%s'", error);
 }
 
 
 
-public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
+public void OnGetPage(const char[] output, int size, CMDReturn status, any namer)
 {
-    decl String:name[128];
-    decl String:part[512];
-    decl String:partBuffer[1024];
-    decl String:explodes[64][512];
-    decl String:query[1024];
-    decl String:outputFinal[size + 128 + 1];
+    char name[128];
+    char part[512];
+    char partBuffer[1024];
+    char explodes[64][512];
+    char query[1024];
+    char[] outputFinal = new char[size + 128 + 1];
 
-    new found;
-    new split;
+    int found;
+    int split;
 
-
-    if (namer != INVALID_HANDLE)
+    ArrayList nameArray = view_as<ArrayList>(namer);
+    if (nameArray != null)
     {
         // Get Pre String
-        GetArrayString(namer, 1, name, sizeof(name));
+        nameArray.GetString(1, name, sizeof(name));
         Format(outputFinal, (size + 128 + 1), "%s%s", name, output);
 
         // Empty it
-        SetArrayString(namer, 1, "");
+        nameArray.SetString(1, "");
 
 
         // Get Name
-        GetArrayString(namer, 0, name, sizeof(name));
+        nameArray.GetString(0, name, sizeof(name));
 
 
         // Explode Output
@@ -1319,7 +1318,7 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
 
 
         // Go through results
-        for (new i=0; i < found; i++)
+        for (int i=0; i < found; i++)
         {
             split = SplitString(explodes[i], "\">", part, sizeof(part));
 
@@ -1334,7 +1333,7 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
                     // Insert Map
                     Format(query, sizeof(query), g_InsertCustomMaps, partBuffer, name);
 
-                    SQL_TQuery(g_hDatabase, SQL_CallBack, query);
+                    g_hDatabase.Query(SQL_CallBack, query);
                 }
             }
         }
@@ -1344,7 +1343,8 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
         if (status != CMD_PROGRESS)
         {
             // Close Array
-            CloseHandle(namer);
+            delete nameArray;
+            nameArray = null;
             namer = INVALID_HANDLE;
 
             if (status == CMD_ERROR)
@@ -1357,7 +1357,7 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
         {
             // Add Last Item
             Format(explodes[found-1], sizeof(explodes[]), "href=%s", explodes[found-1]);
-            SetArrayString(namer, 1, explodes[found-1]);
+            nameArray.SetString(1, explodes[found-1]);
         }
     }
 }
@@ -1366,7 +1366,7 @@ public OnGetPage(const String:output[], const size, CMDReturn:status, any:namer)
 
 
 // Callback of SQL
-public SQL_CallBack(Handle:owner, Handle:hndl, const String:error[], any:data)
+public void SQL_CallBack(Database db, DBResultSet results, const char[] error, any data)
 {
 }
 
@@ -1375,25 +1375,25 @@ public SQL_CallBack(Handle:owner, Handle:hndl, const String:error[], any:data)
 
 // Deletes complete path
 // Recursive method
-DeletePath(String:path[])
+void DeletePath(char[] path)
 {
     // Name buffer
-    decl String:buffer[128];
+    char buffer[128];
 
 
     // Open dir
-    new Handle:dir = OpenDirectory(path);
+    DirectoryListing dir = OpenDirectory(path);
 
 
     // Found?
-    if (dir != INVALID_HANDLE)
+    if (dir != null)
     {
         // What we found?
-        new FileType:type;
+        FileType type;
 
 
         // While found something
-        while (ReadDirEntry(dir, buffer, sizeof(buffer), type))
+        while (dir.GetNext(buffer, sizeof(buffer), type))
         {
             // Maybe it founds relative paths
             if (!StrEqual(buffer, ".", false) && !StrEqual(buffer, "..", false))
@@ -1416,7 +1416,7 @@ DeletePath(String:path[])
         }
 
         // Close Dir handle
-        CloseHandle(dir);
+        delete dir;
     }
 
 
@@ -1427,7 +1427,7 @@ DeletePath(String:path[])
 
 
 // Is player valid?
-bool:IsClientValid(client)
+bool IsClientValid(int client)
 {
     if (client > 0 && client <= MaxClients)
     {
@@ -1448,10 +1448,10 @@ bool:IsClientValid(client)
 
 
 // Is player admin?
-bool:IsClientAdmin(client)
+bool IsClientAdmin(int client)
 {
-    new need = ReadFlagString(g_sFlag);
-    new clientFlags = GetUserFlagBits(client);
+    int need = ReadFlagString(g_sFlag);
+    int clientFlags = GetUserFlagBits(client);
 
     return (need <= 0 || (clientFlags & need) || (clientFlags & ADMFLAG_ROOT));
 }
@@ -1459,7 +1459,7 @@ bool:IsClientAdmin(client)
 
 
 // Reset client
-public OnClientConnected(client)
+public void OnClientConnected(int client)
 {
     // Reset client
     strcopy(g_sLogin[client][0], sizeof(g_sLogin[][]), "");
@@ -1470,17 +1470,17 @@ public OnClientConnected(client)
 
 
 // Sends the current status
-SendCurrentStatus()
+void SendCurrentStatus()
 {
     // Not finished 
-    decl String:message[256];
-    decl String:queue[64];
-    decl String:bar[16];
-    decl String:percent[64];
+    char message[256];
+    char queue[64];
+    char bar[16];
+    char percent[64];
 
-    new Float:current;
-    new Float:total;
-    new Float:per;
+    float current;
+    float total;
+    float per;
 
 
     // First check if finished
@@ -1495,17 +1495,17 @@ SendCurrentStatus()
         // modus?
         if (g_Downloads[g_iCurrentDownload][DL_MODE] == MODUS_COMPRESS)
         {
-            new iTotal = GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]);
-            new iCurrent = g_Downloads[g_iCurrentDownload][DL_FINISH];
+            int iTotal = GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]);
+            int iCurrent = g_Downloads[g_iCurrentDownload][DL_FINISH];
             per = (float(iCurrent / iTotal) * 100.0);
 
 
             // We always need a lot of percent signs^^
-            if (g_hHudSync == INVALID_HANDLE && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
+            if (g_hHudSync == null && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
             {
                 Format(percent, sizeof(percent), "%.2f%%%%%%%%%% - %i / %i", per, iCurrent, iTotal);
             }
-            else if (g_hHudSync != INVALID_HANDLE)
+            else if (g_hHudSync != null)
             {
                 Format(percent, sizeof(percent), "%.2f%%%%%% - %i / %i", per, iCurrent, iTotal);
             }
@@ -1522,11 +1522,11 @@ SendCurrentStatus()
         else if (g_Downloads[g_iCurrentDownload][DL_MODE] == MODUS_UPLOAD)
         {
             // We always need a lot of percent signs^^
-            if (g_hHudSync == INVALID_HANDLE && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
+            if (g_hHudSync == null && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
             {
                 Format(percent, sizeof(percent), "%.2f%%%%%%%%%% - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
             }
-            else if (g_hHudSync != INVALID_HANDLE)
+            else if (g_hHudSync != null)
             {
                 Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
             }
@@ -1543,11 +1543,11 @@ SendCurrentStatus()
         else
         {
             // We always need a lot of percent signs^^
-            if (g_hHudSync == INVALID_HANDLE && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
+            if (g_hHudSync == null && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
             {
                 Format(percent, sizeof(percent), "%.2f%%%%%%%%%% - %.0fkB / %.0fkB", per, current, total);
             }
-            else if (g_hHudSync != INVALID_HANDLE)
+            else if (g_hHudSync != null)
             {
                 Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB", per, current, total);
             }
@@ -1566,7 +1566,7 @@ SendCurrentStatus()
         // Create Bar
         Format(bar, sizeof(bar), "[");
 
-        for (new i=1; i < 11; i++)
+        for (int i=1; i < 11; i++)
         {
             // Check how far we are
             if ((per / 10) >= i)
@@ -1587,14 +1587,14 @@ SendCurrentStatus()
 
 
     // Prepare Hud text
-    if (g_hHudSync != INVALID_HANDLE)
+    if (g_hHudSync != null)
     {
         SetHudTextParams(-1.0, 0.75, 7.0, g_iShowColor[0], g_iShowColor[1], g_iShowColor[2], g_iShowColor[3], 0, 0.0, 0.0, 0.0);
     }
 
 
     // Send to every valid client
-    for (new i=1; i < MaxClients; i++)
+    for (int i=1; i < MaxClients; i++)
     {
         // Find targets
         if (IsClientValid(i) && (g_bShow || IsClientAdmin(i)))
@@ -1621,7 +1621,7 @@ SendCurrentStatus()
 
 
             // No Hud text supported
-            if (g_hHudSync == INVALID_HANDLE) 
+            if (g_hHudSync == null) 
             {
                 PrintHintText(i, message);
             }
@@ -1638,11 +1638,11 @@ SendCurrentStatus()
 
 
 // The notice timer
-public Action:NoticeTimer(Handle:timer, any:data)
+public Action NoticeTimer(Handle timer, any data)
 {
-    decl String:commandBuffer[64];
-    decl String:commandBufferCustom[64];
-    decl String:commandBufferDownload[64];
+    char commandBuffer[64];
+    char commandBufferCustom[64];
+    char commandBufferDownload[64];
 
 
     // Only for commands with sm_
@@ -1660,7 +1660,7 @@ public Action:NoticeTimer(Handle:timer, any:data)
 
 
         // Client loop
-        for (new i=1; i < MaxClients; i++)
+        for (int i=1; i < MaxClients; i++)
         {
             // Valid and admin?
             if (IsClientValid(i) && IsClientAdmin(i))
@@ -1712,7 +1712,7 @@ public Action:NoticeTimer(Handle:timer, any:data)
 
 
 // Gets the filename of a path or the last dir
-GetFileName(const String:path[], String:buffer[], size)
+void GetFileName(const char[] path, char[] buffer, int size)
 {
     // Empty?
     if (path[0] == '\0')
@@ -1724,7 +1724,7 @@ GetFileName(const String:path[], String:buffer[], size)
     
 
     // Linux
-    new pos = FindCharInString(path, '/', true);
+    int pos = FindCharInString(path, '/', true);
     
     // Windows
     if (pos == -1) 
@@ -1743,12 +1743,12 @@ GetFileName(const String:path[], String:buffer[], size)
 
 
 // Checks if a strings end with specific string
-bool:StrEndsWith(String:str[], String:str2[])
+bool StrEndsWith(char[] str, char[] str2)
 {
     // Len of strings
-    new len = strlen(str);
-    new len2 = strlen(str2);
-    new start = len - len2;
+    int len = strlen(str);
+    int len2 = strlen(str2);
+    int start = len - len2;
 
 
     // len2 can't be greather than len
@@ -1765,7 +1765,7 @@ bool:StrEndsWith(String:str[], String:str2[])
 
 
     // For every char in string
-    for (new i=0; i < len2; i++)
+    for (int i=0; i < len2; i++)
     {
         // Check if one char isn't equal
         if (str[start+i] != str2[i])
@@ -1782,7 +1782,7 @@ bool:StrEndsWith(String:str[], String:str2[])
 
 
 // Save Login data
-public Action:OnSetLoginData(client, args)
+public Action OnSetLoginData(int client, int args)
 {
     if (IsClientValid(client))
     {
@@ -1821,11 +1821,11 @@ MENU
 
 
 // Open Custom menu
-public Action:OpenMenuCustom(client, args)
+public Action OpenMenuCustom(int client, int args)
 {
     if (g_bUseCustom)
     {
-        decl String:argument[64];
+        char argument[64];
         
         // Get argument
         GetCmdArgString(argument, sizeof(argument));
@@ -1847,9 +1847,9 @@ public Action:OpenMenuCustom(client, args)
 
 
 // Open  menu
-public Action:OpenMenu(client, args)
+public Action OpenMenu(int client, int args)
 {
-    decl String:argument[64];
+    char argument[64];
     
     // Get argument
     GetCmdArgString(argument, sizeof(argument));
@@ -1866,16 +1866,16 @@ public Action:OpenMenu(client, args)
 
 
 // Download a Map directly
-public Action:DownloadMapDirect(client, args)
+public Action DownloadMapDirect(int client, int args)
 {
     if (IsClientValid(client))
     {
         if (args >= 1)
         {
-            decl String:fileName[128];
-            decl String:id[16];
-            decl String:name[16];
-            new String:url[128];
+            char fileName[128];
+            char id[16];
+            char name[16];
+            char url[128];
 
             // Concat all arguments to url
             GetCmdArgString(url, sizeof(url));
@@ -1920,7 +1920,7 @@ public Action:DownloadMapDirect(client, args)
 
 
 // Prepare a new menu
-PrepareMenu(client, String:argument[], bool:isCustom)
+void PrepareMenu(int client, char[] argument, bool isCustom)
 {
     if (g_bDBLoaded)
     {
@@ -1952,8 +1952,8 @@ PrepareMenu(client, String:argument[], bool:isCustom)
 
 
             // Do we want to search something?
-            decl String:argumentEscaped[256];
-            decl String:argumentEscapedBuffer[256];
+            char argumentEscaped[256];
+            char argumentEscapedBuffer[256];
 
 
             // Mark menu position
@@ -1964,7 +1964,7 @@ PrepareMenu(client, String:argument[], bool:isCustom)
             // Is a argument given?
             if (!StrEqual(argument, ""))
             {
-                SQL_EscapeString(g_hDatabase, argument, argumentEscapedBuffer, sizeof(argumentEscapedBuffer));
+                g_hDatabase.Escape(argument, argumentEscapedBuffer, sizeof(argumentEscapedBuffer));
                 EscapeString(argumentEscapedBuffer, '_', '?', argumentEscaped, sizeof(argumentEscaped));
 
 
@@ -2002,31 +2002,32 @@ PrepareMenu(client, String:argument[], bool:isCustom)
 
 
 // Open the choice menu
-OpenSortChoiceMenu(client)
+void OpenSortChoiceMenu(int client)
 {
-    decl String:display[64];
+    char display[64];
 
     // Create menu
-    new Handle:menu = CreateMenu(OnSortChoose);
+    Menu menu = new Menu(OnSortChoose);
 
-    SetMenuExitButton(menu, true);
-    SetMenuExitBackButton(menu, false);
-    SetMenuTitle(menu, "%T", "ChooseSortType", client);
+    menu.ExitButton = true;
+    menu.ExitBackButton = true;
+    
+    menu.SetTitle("%T", "ChooseSortType", client);
 
     Format(display, sizeof(display), "%T", "AllMaps", client);
-    AddMenuItem(menu, "0", display);
+    menu.AddItem("0", display);
 
     Format(display, sizeof(display), "%T", "NewestMaps", client);
-    AddMenuItem(menu, "1", display);
+    menu.AddItem("1", display);
 
     Format(display, sizeof(display), "%T", "LatestModifiedMaps", client);
-    AddMenuItem(menu, "2", display);
+    menu.AddItem("2", display);
 
     Format(display, sizeof(display), "%T", "MostDownloadedMaps", client);
-    AddMenuItem(menu, "3", display);
+    menu.AddItem("3", display);
 
     Format(display, sizeof(display), "%T", "MostViewedMaps", client);
-    AddMenuItem(menu, "4", display);
+    menu.AddItem("4", display);
 
     if (g_bClientprefsAvailable)
     {
@@ -2037,15 +2038,15 @@ OpenSortChoiceMenu(client)
         Format(display, sizeof(display), "%T", "BestRatedMaps", client);
     }
 
-    AddMenuItem(menu, "5", display);
+    menu.AddItem("5", display);
 
     if (g_bClientprefsAvailable)
     {
         Format(display, sizeof(display), "%T", "SortConfig", client);
-        AddMenuItem(menu, "6", display);
+        menu.AddItem("6", display);
     }
 
-    DisplayMenu(menu, client, 30);
+    menu.Display(client, 30);
 }
 
 
@@ -2053,14 +2054,14 @@ OpenSortChoiceMenu(client)
 
 
 // Client pressed a sort type
-public OnSortChoose(Handle:menu, MenuAction:action, param1, param2)
+public int OnSortChoose(Menu menu, MenuAction action, int param1, int param2)
 {
     if (action == MenuAction_Select && IsClientValid(param1))
     {
-        decl String:choose[8];
+        char choose[8];
 
         // Get Choice
-        GetMenuItem(menu, param2, choose, sizeof(choose));
+        menu.GetItem(param2, choose, sizeof(choose));
 
         strcopy(g_sSearch[param1][CURRENT_MENU], sizeof(g_sSearch[][]), choose);
 
@@ -2082,8 +2083,8 @@ public OnSortChoose(Handle:menu, MenuAction:action, param1, param2)
     }
     else if (action == MenuAction_End)
     {
-        // Close handle on End
-        CloseHandle(menu);
+        // Delete menu on end
+        delete menu;
     }
 }
 
@@ -2091,88 +2092,88 @@ public OnSortChoose(Handle:menu, MenuAction:action, param1, param2)
 
 
 // Open the config menu
-OpenConfigMenu(client)
+void OpenConfigMenu(int client)
 {
-    decl String:item[32];
-    new Handle:menu = CreateMenu(OnChooseSortType);
+    char item[32];
+    Menu menu = new Menu(OnChooseSortType);
 
 
-    SetMenuTitle(menu, "%T", "ChooseSortTypeMaps", client);
-    SetMenuExitBackButton(menu, true);
+    menu.SetTitle("%T", "ChooseSortTypeMaps", client);
+    menu.ExitBackButton = true;
 
     Format(item, sizeof(item), "%T", "Ascending", client);
-    AddMenuItem(Handle:menu, "1", item);
+    menu.AddItem("1", item);
 
     Format(item, sizeof(item), "%T", "Descending", client);
-    AddMenuItem(Handle:menu, "2", item);
+    menu.AddItem("2", item);
 
-    DisplayMenu(menu, client, 30);
+    menu.Display(client, 30);
 }
 
 
 
 
 // Client pressed a sort type
-public OnChooseSortType(Handle:menu, MenuAction:action, param1, param2)
+public int OnChooseSortType(Menu menu, MenuAction action, int param1, int param2)
 {
     if (action == MenuAction_Select && IsClientValid(param1))
     {
-        decl String:choose[12];
-        decl String:display[32];
-        new Handle:newMenu = CreateMenu(OnChooseSort);
-        new clientCookie = GetClientConfigCookie(param1);
+        char choose[12];
+        char display[32];
+        Menu newMenu = new Menu(OnChooseSort);
+        int clientCookie = GetClientConfigCookie(param1);
 
-        SetMenuExitBackButton(newMenu, true);
+        newMenu.ExitBackButton = true;
 
         // Get Choice
-        GetMenuItem(menu, param2, choose, sizeof(choose));
+        menu.GetItem(param2, choose, sizeof(choose));
 
         if (StrEqual(choose, "1"))
         {
-            SetMenuTitle(newMenu, "%T:", "Ascending", param1);
+            newMenu.SetTitle("%T:", "Ascending", param1);
 
             Format(display, sizeof(display), "%T", "SortByName", param1);
-            AddMenuItem(newMenu, "1", display, (clientCookie == 0) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("1", display, (clientCookie == 0) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByDate", param1);
-            AddMenuItem(newMenu, "3", display, (clientCookie == 3) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("3", display, (clientCookie == 3) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByMDate", param1);
-            AddMenuItem(newMenu, "5", display, (clientCookie == 5) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("5", display, (clientCookie == 5) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByDownloads", param1);
-            AddMenuItem(newMenu, "7", display, (clientCookie == 7) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("7", display, (clientCookie == 7) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByViews", param1);
-            AddMenuItem(newMenu, "9", display, (clientCookie == 9) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("9", display, (clientCookie == 9) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByRating", param1);
-            AddMenuItem(newMenu, "11", display, (clientCookie == 11) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("11", display, (clientCookie == 11) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
         }
         else
         {
-            SetMenuTitle(newMenu, "%T:", "Descending", param1);
+            newMenu.SetTitle("%T:", "Descending", param1);
 
             Format(display, sizeof(display), "%T", "SortByName", param1);
-            AddMenuItem(newMenu, "0", display, (clientCookie == 1) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("0", display, (clientCookie == 1) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByDate", param1);
-            AddMenuItem(newMenu, "2", display, (clientCookie == 2) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("2", display, (clientCookie == 2) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByMDate", param1);
-            AddMenuItem(newMenu, "4", display, (clientCookie == 4) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("4", display, (clientCookie == 4) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByDownloads", param1);
-            AddMenuItem(newMenu, "6", display, (clientCookie == 6) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("6", display, (clientCookie == 6) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByViews", param1);
-            AddMenuItem(newMenu, "8", display, (clientCookie == 8) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("8", display, (clientCookie == 8) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
 
             Format(display, sizeof(display), "%T", "SortByRating", param1);
-            AddMenuItem(newMenu, "10", display, (clientCookie == 10) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
+            newMenu.AddItem("10", display, (clientCookie == 10) ? ITEMDRAW_DISABLED : ITEMDRAW_DEFAULT);
         }
 
-        DisplayMenu(newMenu, param1, 45);
+        newMenu.Display(param1, 45);
     }
     else if (action == MenuAction_Cancel)
     {
@@ -2185,8 +2186,8 @@ public OnChooseSortType(Handle:menu, MenuAction:action, param1, param2)
     }
     else if (action == MenuAction_End)
     {
-        // Close handle on End
-        CloseHandle(menu);
+        // Delete menu on end
+        delete menu;
     }
 }
 
@@ -2194,14 +2195,14 @@ public OnChooseSortType(Handle:menu, MenuAction:action, param1, param2)
 
 
 // Client pressed a sort type
-public OnChooseSort(Handle:menu, MenuAction:action, param1, param2)
+public int OnChooseSort(Menu menu, MenuAction action, int param1, int param2)
 {
     if (action == MenuAction_Select && IsClientValid(param1))
     {
-        decl String:choose[12];
+        char choose[12];
 
         // Get Choice
-        GetMenuItem(menu, param2, choose, sizeof(choose));
+        menu.GetItem(param2, choose, sizeof(choose));
 
         SetClientCookie(param1, g_hConfigCookie, choose);
 
@@ -2220,8 +2221,8 @@ public OnChooseSort(Handle:menu, MenuAction:action, param1, param2)
     }
     else if (action == MenuAction_End)
     {
-        // Close handle on End
-        CloseHandle(menu);
+        // Delete menu on end
+        delete menu;
     }
 }
 
@@ -2229,7 +2230,7 @@ public OnChooseSort(Handle:menu, MenuAction:action, param1, param2)
 
 
 // Open the menu with all Maps
-OpenMenuWithAllMaps(client)
+void OpenMenuWithAllMaps(int client)
 {
     SendCategories(client);
 }
@@ -2238,9 +2239,9 @@ OpenMenuWithAllMaps(client)
 
 
 // Send the categories to the client
-SendCategories(client)
+void SendCategories(int client)
 {
-    decl String:query[4096];
+    char query[4096];
     
 
     // Reset map menu pos
@@ -2275,7 +2276,7 @@ SendCategories(client)
 
 
     // Execute
-    SQL_TQuery(g_hDatabase, OnSendCategories, query, GetClientUserId(client));
+    g_hDatabase.Query(OnSendCategories, query, GetClientUserId(client));
 }
 
 
@@ -2283,55 +2284,55 @@ SendCategories(client)
 
 
 // Categories to menu
-public OnSendCategories(Handle:owner, Handle:hndl, const String:error[], any:userid)
+public void OnSendCategories(Database db, DBResultSet results, const char[] error, any userid)
 {
-    new client = GetClientOfUserId(userid);
+    int client = GetClientOfUserId(userid);
 
     if (IsClientValid(client))
     {
         // Valid answer?
-        if (hndl != INVALID_HANDLE)
+        if (results != null)
         {
             // Do we found something?
-            if (SQL_FetchRow(hndl))
+            if (results.FetchRow())
             {
                 // Create menu
-                new Handle:menu = CreateMenu(OnCategoryChoose);
-                decl String:id[16];
-                decl String:name[128];
-                decl String:item[128 + 32];
+                Menu menu = new Menu(OnCategoryChoose);
+                char id[16];
+                char name[128];
+                char item[128 + 32];
 
 
-                SetMenuExitBackButton(menu, true);
+                menu.ExitBackButton = true;
 
                 // Title
                 if (StrEqual(g_sSearch[client][SEARCH], ""))
                 {
-                    SetMenuTitle(menu, "%T", "ChooseCategory", client);
+                    menu.SetTitle("%T", "ChooseCategory", client);
                 }
                 else
                 {
-                    SetMenuTitle(menu, "%T", "Found", client, g_sSearch[client][SEARCHREAL]);
+                    menu.SetTitle("%T", "Found", client, g_sSearch[client][SEARCHREAL]);
                 }
 
 
                 do
                 {
                     // Fetch results
-                    SQL_FetchString(hndl, 0, id, sizeof(id));
-                    SQL_FetchString(hndl, 1, name, sizeof(name));
+                    results.FetchString(0, id, sizeof(id));
+                    results.FetchString(1, name, sizeof(name));
 
 
                     // Add to menu
-                    Format(item, sizeof(item), "%s (%i %T)", name, SQL_FetchInt(hndl, 2), "Maps", client);
+                    Format(item, sizeof(item), "%s (%i %T)", name, results.FetchInt(2), "Maps", client);
                     
-                    AddMenuItem(menu, id, item);
+                    menu.AddItem(id, item);
                 } 
-                while (SQL_FetchRow(hndl));
+                while (results.FetchRow());
 
 
                 // Now send menu at last positon
-                DisplayMenuAtItem(menu, client, g_iLast[client][0], MENU_TIME_FOREVER);
+                menu.DisplayAt(client, g_iLast[client][0], MENU_TIME_FOREVER);
             }
             else
             {
@@ -2351,14 +2352,14 @@ public OnSendCategories(Handle:owner, Handle:hndl, const String:error[], any:use
 
 
 // Client pressed category
-public OnCategoryChoose(Handle:menu, MenuAction:action, param1, param2)
+public int OnCategoryChoose(Menu menu, MenuAction action, int param1, int param2)
 {
     if (action == MenuAction_Select && IsClientValid(param1))
     {
-        decl String:choose[12];
+        char choose[12];
 
         // Get Choice
-        GetMenuItem(menu, param2, choose, sizeof(choose));
+        menu.GetItem(param2, choose, sizeof(choose));
 
 
         // Save to client and send maps menu
@@ -2380,8 +2381,8 @@ public OnCategoryChoose(Handle:menu, MenuAction:action, param1, param2)
     }
     else if (action == MenuAction_End)
     {
-        // Close handle on End
-        CloseHandle(menu);
+        // Delete menu on end
+        delete menu;
     }
 }
 
@@ -2389,11 +2390,11 @@ public OnCategoryChoose(Handle:menu, MenuAction:action, param1, param2)
 
 
 // Send maps to client
-SendMaps(client, String:sort[])
+void SendMaps(int client, char[] sort)
 {
     if (IsClientValid(client))
     {
-        decl String:query[4096];
+        char query[4096];
 
         // Reset Data
         strcopy(g_sSearch[client][MAPNAME], sizeof(g_sSearch[][]), "");
@@ -2418,7 +2419,7 @@ SendMaps(client, String:sort[])
             if (StrEqual(g_sSearch[client][CUSTOM], "0", false))
             {
                 // check what type of maps we want
-                new sortInt = StringToInt(sort);
+                int sortInt = StringToInt(sort);
 
                 switch(sortInt)
                 {
@@ -2476,7 +2477,7 @@ SendMaps(client, String:sort[])
         }
 
         // Execute
-        SQL_TQuery(g_hDatabase, OnSendMaps, query, GetClientUserId(client));
+        g_hDatabase.Query(OnSendMaps, query, GetClientUserId(client));
     }
 }
 
@@ -2484,39 +2485,39 @@ SendMaps(client, String:sort[])
 
 
 // Maps to menu
-public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
+public void OnSendMaps(Database db, DBResultSet results, const char[] error, any userid)
 {
-    new client = GetClientOfUserId(userid);
+    int client = GetClientOfUserId(userid);
 
     if (IsClientValid(client))
     {
-        new bool:isCustom = StrEqual(g_sSearch[client][CUSTOM], "1", false);
+        bool isCustom = StrEqual(g_sSearch[client][CUSTOM], "1", false);
 
-        if (hndl != INVALID_HANDLE)
+        if (results != null)
         {
             // Do we found something?
-            if (SQL_FetchRow(hndl))
+            if (results.FetchRow())
             {
                 // Create menu
-                new Handle:menu = CreateMenu(OnMapChoose);
+                Menu menu = new Menu(OnMapChoose);
 
-                decl String:game[16];
-                decl String:name[128];
-                decl String:date[64];
-                decl String:mdate[64];
-                decl String:downloads[12];
-                decl String:rating[12];
-                decl String:votes[12];
-                decl String:views[12];
-                decl String:file[256];
-                decl String:id[64];
-                decl String:size[32];
-                decl String:item[sizeof(name) + sizeof(rating) + sizeof(downloads) + 32];
-                decl String:item2[256 + 64 + 128 + 32 + 16 + 64 + 64 + 12 + 12 + 12 + 12 + 32];
+                char game[16];
+                char name[128];
+                char date[64];
+                char mdate[64];
+                char downloads[12];
+                char rating[12];
+                char votes[12];
+                char views[12];
+                char file[256];
+                char id[64];
+                char size[32];
+                char item[sizeof(name) + sizeof(rating) + sizeof(downloads) + 32];
+                char item2[256 + 64 + 128 + 32 + 16 + 64 + 64 + 12 + 12 + 12 + 12 + 32];
                 
                 // Title
-                SetMenuTitle(menu, "%T", "ChooseMap", client);
-                SetMenuExitBackButton(menu, true);
+                menu.SetTitle("%T", "ChooseMap", client);
+                menu.ExitBackButton = true;
 
 
                 do
@@ -2524,22 +2525,22 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
                     // Fetch results
                     if (!isCustom)
                     {
-                        SQL_FetchString(hndl, 0, id, sizeof(id));
-                        SQL_FetchString(hndl, 1, date, sizeof(date));
-                        SQL_FetchString(hndl, 2, mdate, sizeof(mdate));
-                        SQL_FetchString(hndl, 3, downloads, sizeof(downloads));
-                        SQL_FetchString(hndl, 4, rating, sizeof(rating));
-                        SQL_FetchString(hndl, 5, votes, sizeof(votes));
-                        SQL_FetchString(hndl, 6, views, sizeof(views));
-                        SQL_FetchString(hndl, 7, name, sizeof(name));
-                        SQL_FetchString(hndl, 8, file, sizeof(file));
-                        SQL_FetchString(hndl, 9, size, sizeof(size));
-                        SQL_FetchString(hndl, 10, game, sizeof(game));
+                        results.FetchString(0, id, sizeof(id));
+                        results.FetchString(1, date, sizeof(date));
+                        results.FetchString(2, mdate, sizeof(mdate));
+                        results.FetchString(3, downloads, sizeof(downloads));
+                        results.FetchString(4, rating, sizeof(rating));
+                        results.FetchString(5, votes, sizeof(votes));
+                        results.FetchString(6, views, sizeof(views));
+                        results.FetchString(7, name, sizeof(name));
+                        results.FetchString(8, file, sizeof(file));
+                        results.FetchString(9, size, sizeof(size));
+                        results.FetchString(10, game, sizeof(game));
                     }
                     else
                     {
-                        SQL_FetchString(hndl, 0, name, sizeof(name));
-                        SQL_FetchString(hndl, 1, id, sizeof(id));
+                        results.FetchString(0, name, sizeof(name));
+                        results.FetchString(1, id, sizeof(id));
                     }
 
 
@@ -2550,7 +2551,7 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
                     // Add to menu
                     if (!isCustom)
                     {
-                        new sortTitle = StringToInt(g_sSearch[client][TITLE]);
+                        int sortTitle = StringToInt(g_sSearch[client][TITLE]);
 
                         switch(sortTitle)
                         {
@@ -2560,14 +2561,14 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
                             }
                             case 1:
                             {
-                                decl String:dateStr[64];
+                                char dateStr[64];
                                 FormatTime(dateStr, sizeof(dateStr), "%d.%m.%Y %H:%M", StringToInt(date));
 
                                 Format(item, sizeof(item), "%s (%s)", name, dateStr);
                             }
                             case 2:
                             {
-                                decl String:mdateStr[64];
+                                char mdateStr[64];
                                 FormatTime(mdateStr, sizeof(mdateStr), "%d.%m.%Y %H:%M", StringToInt(mdate));
 
                                 Format(item, sizeof(item), "%s (%s)", name, mdateStr);
@@ -2605,13 +2606,13 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
 
 
                     // Add item
-                    AddMenuItem(menu, item2, item);
+                    menu.AddItem(item2, item);
                 }
-                while (SQL_FetchRow(hndl));
+                while (results.FetchRow());
 
 
                 // Now send menu
-                DisplayMenuAtItem(menu, client, g_iLast[client][1], MENU_TIME_FOREVER);
+                menu.DisplayAt(client, g_iLast[client][1], MENU_TIME_FOREVER);
             }
             else
             {
@@ -2632,18 +2633,18 @@ public OnSendMaps(Handle:owner, Handle:hndl, const String:error[], any:userid)
 
 
 // Client pressed a map
-public OnMapChoose(Handle:menu, MenuAction:action, param1, param2)
+public int OnMapChoose(Menu menu, MenuAction action, int param1, int param2)
 {
     if (action == MenuAction_Select && IsClientValid(param1))
     {
-        decl String:choose[128 + 128 + 128 + 32 + 16 + 64 + 64 + 12 + 12 + 12 + 12 + 12];
-        decl String:splits[11][128];
+        char choose[128 + 128 + 128 + 32 + 16 + 64 + 64 + 12 + 12 + 12 + 12 + 12];
+        char splits[11][128];
 
-        new bool:isCustom = StrEqual(g_sSearch[param1][CUSTOM], "1", false);
+        bool isCustom = StrEqual(g_sSearch[param1][CUSTOM], "1", false);
 
 
         // Get choice
-        GetMenuItem(menu, param2, choose, sizeof(choose));
+        menu.GetItem(param2, choose, sizeof(choose));
 
 
         // Explode choice again
@@ -2698,66 +2699,66 @@ public OnMapChoose(Handle:menu, MenuAction:action, param1, param2)
     }
     else if (action == MenuAction_End)
     {
-        // Close handle on End
-        CloseHandle(menu);
+        // Delete menu on end
+        delete menu;
     }
 }
 
 
 
 // Creates the decide Menu
-createDecideMenu(client, bool:isCustom)
+void createDecideMenu(int client, bool isCustom)
 {
-    decl String:item[64];
+    char item[64];
 
     // Create information menu
-    new Handle:menuNew = CreateMenu(OnDecide);
+    Menu menuNew = new Menu(OnDecide);
 
     // Title and back button
-    SetMenuTitle(menuNew, "%T: %s\n \n%T\n%T\n%T\n%T\n%T\n%T\n ", "Map", client, g_sSearch[client][MAPNAME]
+    menuNew.SetTitle("%T: %s\n \n%T\n%T\n%T\n%T\n%T\n%T\n ", "Map", client, g_sSearch[client][MAPNAME]
                                                                 ,"Downloads", client, g_sSearch[client][DOWNLOADS], "Rating", client, g_sSearch[client][RATING], g_sSearch[client][VOTES], "Views"
                                                                 ,client, g_sSearch[client][VIEWS], "Created", client, g_sSearch[client][DATE], "LatestModified", client, g_sSearch[client][MDATE], "Size"
                                                                 , client, g_sSearch[client][MAPSIZE]);
 
-    SetMenuPagination(menuNew, 3);
+    menuNew.Pagination = 3;
 
     // Items
     Format(item, sizeof(item), "%T", "Download", client);
-    AddMenuItem(menuNew, "1", item);
+    menuNew.AddItem("1", item);
 
 
     if (!isCustom)
     {
         Format(item, sizeof(item), "%T\n ", "Motd", client);
-        AddMenuItem(menuNew, "2", item);
+        menuNew.AddItem("2", item);
     }
 
 
     Format(item, sizeof(item), "%T", "Back", client);
-    AddMenuItem(menuNew, "3", item);
+    menuNew.AddItem("3", item);
     
 
     // Display Menu
-    DisplayMenu(menuNew, client, MENU_TIME_FOREVER);
+    menuNew.Display(client, MENU_TIME_FOREVER);
 }
 
 
 
 
 // Player decided to download a map
-public OnDecide(Handle:menu, MenuAction:action, param1, param2)
+public int OnDecide(Menu menu, MenuAction action, int param1, int param2)
 {
     if (action == MenuAction_Select && IsClientValid(param1))
     {
-        decl String:choose[16];
-        decl String:motdUrl[PLATFORM_MAX_PATH + 1];
+        char choose[16];
+        char motdUrl[PLATFORM_MAX_PATH + 1];
 
-        new choice;
-        new bool:isCustom = StrEqual(g_sSearch[param1][CUSTOM], "1", false);
+        int choice;
+        bool isCustom = StrEqual(g_sSearch[param1][CUSTOM], "1", false);
 
 
         // Get choice
-        GetMenuItem(menu, param2, choose, sizeof(choose));
+        menu.GetItem(param2, choose, sizeof(choose));
 
         choice = StringToInt(choose);
 
@@ -2787,7 +2788,7 @@ public OnDecide(Handle:menu, MenuAction:action, param1, param2)
             if (isCustom)
             {
                 // We need a random id
-                new random = GetRandomInt(5000, 10000);
+                int random = GetRandomInt(5000, 10000);
 
                 Format(g_sSearch[param1][MAPID], sizeof(g_sSearch[][]), "%i", random);
             }
@@ -2803,8 +2804,8 @@ public OnDecide(Handle:menu, MenuAction:action, param1, param2)
     }
     else if (action == MenuAction_End)
     {
-        // Close handle on End
-        CloseHandle(menu);
+        // Delete menu on end
+        delete menu;
     }
 }
 
@@ -2827,9 +2828,9 @@ Download
 
 
 // Now we can start
-StartDownloadingMap(client, const String:id[], const String:map[], const String:link[], bool:isCustom)
+void StartDownloadingMap(int client, const char[] id, const char[] map, const char[] link, bool isCustom)
 {
-    decl String:savePath[PLATFORM_MAX_PATH + 1];
+    char savePath[PLATFORM_MAX_PATH + 1];
 
 
     // Maps on Gamebanana have an unique ID, we use this for the save path
@@ -2889,7 +2890,7 @@ StartDownloadingMap(client, const String:id[], const String:map[], const String:
 
 
     // File array
-    if (g_Downloads[g_iTotalDownloads][DL_FILES] != INVALID_HANDLE)
+    if (g_Downloads[g_iTotalDownloads][DL_FILES] != null)
     {
         CloseHandle(g_Downloads[g_iTotalDownloads][DL_FILES]);
     }
@@ -2899,7 +2900,7 @@ StartDownloadingMap(client, const String:id[], const String:map[], const String:
 
 
     // FTP File array
-    if (g_Downloads[g_iTotalDownloads][DL_FTPFILES] != INVALID_HANDLE)
+    if (g_Downloads[g_iTotalDownloads][DL_FTPFILES] != null)
     {
         CloseHandle(g_Downloads[g_iTotalDownloads][DL_FTPFILES]);
     }
@@ -2926,7 +2927,7 @@ StartDownloadingMap(client, const String:id[], const String:map[], const String:
 
 
 // Start download
-DownloadMap()
+void DownloadMap()
 {
     // Update current download item
     g_iCurrentDownload++;
@@ -2940,7 +2941,7 @@ DownloadMap()
 
 
 // Download updated
-public OnDownloadUpdate(bool:finished, const String:error[], Float:dltotal, Float:dlnow, Float:ultotal, Float:ulnow)
+public void OnDownloadUpdate(bool finished, const char[] error, float dltotal, float dlnow, float ultotal, float ulnow)
 {
     // Finished with Error?
     if (finished && !StrEqual(error, ""))
@@ -2960,7 +2961,7 @@ public OnDownloadUpdate(bool:finished, const String:error[], Float:dltotal, Floa
         // finished?
         if (finished)
         {
-            decl String:extractPath[PLATFORM_MAX_PATH + 1];
+            char extractPath[PLATFORM_MAX_PATH + 1];
             
             // Create path to extract to, this is the unique path
             Format(extractPath, sizeof(extractPath), "%s/%s", g_sPluginPath, g_Downloads[g_iCurrentDownload][DL_ID]);
@@ -2973,7 +2974,7 @@ public OnDownloadUpdate(bool:finished, const String:error[], Float:dltotal, Floa
             }
             else
             {
-                decl String:fileName[128];
+                char fileName[128];
 
                 // Move .bsp files directly to the extract path
                 GetFileName(g_Downloads[g_iCurrentDownload][DL_SAVE], fileName, sizeof(fileName));
@@ -2999,7 +3000,7 @@ public OnDownloadUpdate(bool:finished, const String:error[], Float:dltotal, Floa
 
 
 // Stop download and go to next one
-StopDownload()
+void StopDownload()
 {
     // Is another download in queue?
     if (g_iCurrentDownload + 1 < g_iTotalDownloads)
@@ -3037,7 +3038,7 @@ Extract
 
 
 // Extract Status
-public OnExtracted(const String:output[], const size, CMDReturn:status)
+public void OnExtracted(const char[] output, int size, CMDReturn status)
 {
     // Extract finished?
     if (status != CMD_PROGRESS)
@@ -3058,14 +3059,14 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
         else
         {
             // Doesn't seems so
-            decl String:extractPath[PLATFORM_MAX_PATH + 1];
+            char extractPath[PLATFORM_MAX_PATH + 1];
             
 
             // Format unique file path
             Format(extractPath, sizeof(extractPath), "%s/%s", g_sPluginPath, g_Downloads[g_iCurrentDownload][DL_ID]);
 
             // What we found?
-            new found = SearchForFolders(extractPath, 0);
+            int found = SearchForFolders(extractPath, 0);
 
             // Now search for extracted files and folders
             if (found > 0)
@@ -3082,14 +3083,14 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
                 if (g_bDownloadList)
                 {
                     // Yes...
-                    decl String:dllistFile[PLATFORM_MAX_PATH + 1];
-                    decl String:content[64];
-                    decl String:readbuffer[64];
+                    char dllistFile[PLATFORM_MAX_PATH + 1];
+                    char content[64];
+                    char readbuffer[64];
 
-                    new Handle:file;
-                    new bool:duplicate;
+                    File file;
+                    bool duplicate;
 
-                    new arraySize = GetArraySize(g_Downloads[g_iCurrentDownload][DL_FTPFILES]);
+                    int arraySize = GetArraySize(g_Downloads[g_iCurrentDownload][DL_FTPFILES]);
 
 
                     // Path to downloadlist
@@ -3109,10 +3110,10 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
 
 
                     // We could open file
-                    if (file != INVALID_HANDLE)
+                    if (file != null)
                     {
                         // Loop through files
-                        for (new i=0; i < arraySize; i++)
+                        for (int i=0; i < arraySize; i++)
                         {
                             // First get content
                             GetArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], i, content, sizeof(content));
@@ -3122,14 +3123,14 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
                             if (!StrEndsWith(content, ".nav") && !StrEndsWith(content, ".bsp") && !StrEndsWith(content, ".txt"))
                             {
                                 // Set File pointer to start
-                                FileSeek(file, 0, SEEK_SET);
+                                file.Seek(0, SEEK_SET);
 
                                 // Resetz duplicate
                                 duplicate = false;
 
 
                                 // Loop through file content and search if file already in downloadlist
-                                while (!IsEndOfFile(file) && ReadFileLine(file, readbuffer, sizeof(readbuffer)))
+                                while (!file.EndOfFile() && file.ReadLine(readbuffer, sizeof(readbuffer)))
                                 {
                                     // Replace line ends
                                     ReplaceString(readbuffer, sizeof(readbuffer), "\n", "");
@@ -3167,14 +3168,14 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
                                         StrCat(content, sizeof(content), "\r");
                                     }
 
-                                    WriteFileLine(file, content);
+                                    file.WriteLine(content);
                                 }
                             }
                         }
 
 
                         // Close File
-                        CloseHandle(file);
+                        file.Close();
                     }
                 }
 
@@ -3185,8 +3186,8 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
                 {
                     // Now Upload it to the Fast DL Server
                     // First Compress all files
-                    decl String:file[128];
-                    decl String:archive[128];
+                    char file[128];
+                    char archive[128];
                     
                     
                     // Set new mode
@@ -3254,22 +3255,22 @@ public OnExtracted(const String:output[], const size, CMDReturn:status)
     We can only copy known folders, because we can't know the path of a single file.
     We only know where to put .bsp and .nav files
 */
-SearchForFolders(String:path[], found)
+int SearchForFolders(char[] path, int found)
 {
-    decl String:newPath[PLATFORM_MAX_PATH + 1];
-    decl String:content[128];
+    char newPath[PLATFORM_MAX_PATH + 1];
+    char content[128];
 
 
     // Open current dir
-    new Handle:dir = OpenDirectory(path);
-    new FileType:type;
+    DirectoryListing dir = OpenDirectory(path);
+    FileType type;
 
 
 
-    if (dir != INVALID_HANDLE)
+    if (dir != null)
     {
         // Read extract path
-        while (ReadDirEntry(dir, content, sizeof(content), type))
+        while (dir.GetNext(content, sizeof(content), type))
         {
             // No relative paths
             if (!StrEqual(content, ".") && !StrEqual(content, ".."))
@@ -3323,7 +3324,7 @@ SearchForFolders(String:path[], found)
                 // Map file
                 else if (StrEndsWith(content, ".bsp") && type == FileType_File)
                 {
-                    decl String:buff[128];
+                    char buff[128];
 
 
                     // Add File to file list, for uploading
@@ -3343,8 +3344,8 @@ SearchForFolders(String:path[], found)
                     if (g_bMapCycle)
                     {
                         // File
-                        decl String:readbuffer[128];
-                        new Handle:mapcycle = INVALID_HANDLE;
+                        char readbuffer[128];
+                        File mapcycle = null;
 
 
                         // We don't need the .bsp extension^^
@@ -3367,13 +3368,13 @@ SearchForFolders(String:path[], found)
 
 
                         // Found valid mapcycle?
-                        if (mapcycle != INVALID_HANDLE)
+                        if (mapcycle != null)
                         {
                             // Search for duplicate
-                            new bool:duplicate = false;
+                            bool duplicate = false;
 
 
-                            while (!IsEndOfFile(mapcycle) && ReadFileLine(mapcycle, readbuffer, sizeof(readbuffer)))
+                            while (!mapcycle.EndOfFile() && mapcycle.ReadLine(readbuffer, sizeof(readbuffer)))
                             {
                                 // Replace line ends
                                 ReplaceString(readbuffer, sizeof(readbuffer), "\n", "");
@@ -3407,11 +3408,11 @@ SearchForFolders(String:path[], found)
                                 {
                                     StrCat(content, sizeof(content), "\r");
                                 }
-                                WriteFileLine(mapcycle, content);
+                                mapcycle.WriteLine(content);
                             }
 
                             // Close
-                            CloseHandle(mapcycle);
+                            mapcycle.Close();
                         }
                     }
 
@@ -3436,8 +3437,8 @@ SearchForFolders(String:path[], found)
         }
 
 
-        // Close handle
-        CloseHandle(dir);
+        // Close dir
+        delete dir;
     }
 
 
@@ -3464,16 +3465,14 @@ Copying
 
 
 // This allow us to copy a known folder to the gamedir
-CopyToGameDir(const String:path[], const String:cur[])
+void CopyToGameDir(const char[] path, const char[] cur)
 {
     // Name buffer
-    decl String:buffer[128];
-    decl String:file[128];
+    char buffer[128];
+    char file[128];
 
     // Open dir
-    new Handle:dir = OpenDirectory(path);
-
-
+    DirectoryListing dir = OpenDirectory(path);
 
 
     // First create current path in gamedir
@@ -3483,16 +3482,15 @@ CopyToGameDir(const String:path[], const String:cur[])
     }
 
 
-
-    // Should never be a INVALID_HANDLE
-    if (dir != INVALID_HANDLE)
+    // Should never be a null
+    if (dir != null)
     {
         // What we found?
-        new FileType:type;
+        FileType type;
 
         
         // While found something
-        while (ReadDirEntry(dir, buffer, sizeof(buffer), type))
+        while (dir.GetNext(buffer, sizeof(buffer), type))
         {
             // No relative paths
             if (!StrEqual(buffer, ".", false) && !StrEqual(buffer, "..", false))
@@ -3520,7 +3518,7 @@ CopyToGameDir(const String:path[], const String:cur[])
         }
 
         // Close Handle
-        CloseHandle(dir);
+        delete dir;
     }
 }
 
@@ -3529,7 +3527,7 @@ CopyToGameDir(const String:path[], const String:cur[])
 
 
 // Copy finished
-public CopyFinished(bool:success, String:from[], String:to[], any:extractOnFinish)
+public void CopyFinished(bool success, char[] from, char[] to, any extractOnFinish)
 {
     // We only log any errors
     if (!success)
@@ -3560,7 +3558,7 @@ Compressing and Uploading
 
 
 // Compress updated
-public OnCompressed(const String:output[], const size, CMDReturn:status)
+public void OnCompressed(const char[] output, int size, CMDReturn status)
 {
     // Compressing finished?
     if (status != CMD_PROGRESS)
@@ -3581,8 +3579,8 @@ public OnCompressed(const String:output[], const size, CMDReturn:status)
         else
         {
             // Compress next file
-            decl String:file[PLATFORM_MAX_PATH + 1];
-            decl String:archive[PLATFORM_MAX_PATH + 1];
+            char file[PLATFORM_MAX_PATH + 1];
+            char archive[PLATFORM_MAX_PATH + 1];
             
             
             // Update compressed files
@@ -3648,7 +3646,7 @@ public OnCompressed(const String:output[], const size, CMDReturn:status)
 
 
 // Download updated
-public OnUploadProgress(bool:finished, const String:error[], Float:dltotal, Float:dlnow, Float:ultotal, Float:ulnow)
+public void OnUploadProgress(bool finished, const char[] error, float dltotal, float dlnow, float ultotal, float ulnow)
 {
     // Finished with Error?
     if (finished && !StrEqual(error, ""))
@@ -3670,8 +3668,8 @@ public OnUploadProgress(bool:finished, const String:error[], Float:dltotal, Floa
         if (finished)
         {
             // Upload next file
-            decl String:file[PLATFORM_MAX_PATH + 1];
-            decl String:archive[PLATFORM_MAX_PATH + 1];
+            char file[PLATFORM_MAX_PATH + 1];
+            char archive[PLATFORM_MAX_PATH + 1];
             
             
             // Update uploaded files
