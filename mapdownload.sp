@@ -175,6 +175,7 @@ bool g_bSearch;
 bool g_bDownloadList;
 bool g_bUseCustom;
 bool g_bClientprefsAvailable;
+bool g_bForce32Bit;
 
 
 // Global ints
@@ -368,6 +369,7 @@ public void OnPluginStart()
     g_bDBLoaded = false;
     g_bUseCustom = false;
     g_bClientprefsAvailable = false;
+    g_bForce32Bit = false;
     g_iCurrentNotice = 0;
     g_iDatabaseTries = 0;
     g_iShowColor = {255, 255, 255, 255};
@@ -593,6 +595,22 @@ public void OnAllPluginsLoaded()
     {
         // No -> stop plugin!
         SetFailState("Attention: Extension system2 couldn't be found. Please install it to run Map Download!");
+    }
+
+    char binDir[PLATFORM_MAX_PATH];
+    char binDir32Bit[PLATFORM_MAX_PATH];
+
+    if (!System2_Check7ZIP(binDir, sizeof(binDir))) {
+        if (!System2_Check7ZIP(binDir32Bit, sizeof(binDir32Bit), true)) {
+            if (StrEqual(binDir, binDir32Bit)) {
+                SetFailState("Attention: 7-ZIP was not found or is not executable at '%s'", binDir);
+            } else {
+                SetFailState("Attention: 7-ZIP was not found or is not executable at '%s' or '%s'", binDir, binDir32Bit);
+            }
+        } else {
+            g_bForce32Bit = true;
+            Log("Attention: 64-Bit version of 7-ZIP was not found or is not executable at '%s', falling back to 32-Bit version!", binDir);
+        }
     }
 }
 
@@ -845,7 +863,7 @@ void PreparePlugin()
         BuildPath(Path_SM, path, sizeof(path), "data/sqlite/gamebanana.sq3");
 
         // Download current database
-        System2HTTPRequest downloadRequest = new System2HTTPRequest(UPDATE_URL_DB, PrepareDB);
+        System2HTTPRequest downloadRequest = new System2HTTPRequest(PrepareDB, UPDATE_URL_DB);
         downloadRequest.SetOutputFile(path);
         downloadRequest.GET();
         delete downloadRequest;
@@ -945,7 +963,7 @@ public void PrepareDB(bool success, const char[] error, System2HTTPRequest reque
         else
         {
             // Notice update
-            LogMessage("Updated gamebanana Database succesfully!");
+            Log("Updated gamebanana Database succesfully!");
         }
     }
 
@@ -1274,7 +1292,7 @@ public void OnAddedCustomUrls(Database db, any data, int numQueries, DBResultSet
 
 
         // Now search for maps
-        System2HTTPRequest searchRequest = new System2HTTPRequest(search, OnGetPage);
+        System2HTTPRequest searchRequest = new System2HTTPRequest(OnGetPage, search);
         searchRequest.Any = nameArray;
         searchRequest.SetUserAgent("Ingame Map Download Searcher");
         searchRequest.GET();
@@ -1316,8 +1334,8 @@ public void OnGetPage(bool success, const char[] error, System2HTTPRequest reque
         else
         {
             // Get output
-            char[] output = new char[response.ContentSize + 1];
-            response.GetContent(output, response.ContentSize + 1);
+            char[] output = new char[response.ContentLength + 1];
+            response.GetContent(output, response.ContentLength + 1);
 
             // Explode Output
             char explodes[64][512];
@@ -2919,7 +2937,7 @@ void DownloadMap()
     g_iCurrentDownload++;
 
     // Finally start the download
-    System2HTTPRequest downloadRequest = new System2HTTPRequest(g_Downloads[g_iCurrentDownload][DL_FILE], OnDownloadFinished);
+    System2HTTPRequest downloadRequest = new System2HTTPRequest(OnDownloadFinished, g_Downloads[g_iCurrentDownload][DL_FILE]);
     downloadRequest.SetProgressCallback(OnDownloadUpdate);
     downloadRequest.SetOutputFile(g_Downloads[g_iCurrentDownload][DL_SAVE]);
     downloadRequest.GET();
@@ -2979,7 +2997,7 @@ public void OnDownloadFinished(bool success, const char[] error, System2HTTPRequ
         if (!StrEndsWith(g_Downloads[g_iCurrentDownload][DL_SAVE], ".bsp"))
         {
             // Now extract it
-            System2_Extract(OnExtracted, g_Downloads[g_iCurrentDownload][DL_SAVE], extractPath);
+            System2_Extract(OnExtracted, g_Downloads[g_iCurrentDownload][DL_SAVE], extractPath,0, g_bForce32Bit);
         }
         else
         {
@@ -3201,7 +3219,7 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
                 
                 // Compress
                 // Next step is in OnCompressed when every file is compressed
-                System2_Compress(OnCompressed, file, archive, ARCHIVE_BZIP2, LEVEL_3);
+                System2_Compress(OnCompressed, file, archive, ARCHIVE_BZIP2, LEVEL_3, 0, g_bForce32Bit);
             }
             else
             {
@@ -3651,7 +3669,7 @@ public void OnCompressed(bool success, const char[] command, System2ExecuteOutpu
             char url[256];
             Format(url, sizeof(url), "ftp://%s/%s", g_sFTPHost, archive);
 
-            System2FTPRequest uploadRequest = new System2FTPRequest(url, OnUploadFinished);
+            System2FTPRequest uploadRequest = new System2FTPRequest(OnUploadFinished, url);
             uploadRequest.CreateMissingDirs = true;
             uploadRequest.SetPort(g_iFTPPort);
             uploadRequest.SetProgressCallback(OnUploadProgress);
@@ -3681,7 +3699,7 @@ public void OnCompressed(bool success, const char[] command, System2ExecuteOutpu
 
             // Compress
             // Next step is in OnCompressed when every file is compressed
-            System2_Compress(OnCompressed, file, archive, ARCHIVE_BZIP2, LEVEL_3);
+            System2_Compress(OnCompressed, file, archive, ARCHIVE_BZIP2, LEVEL_3, 0, g_bForce32Bit);
         }
     }
 }
