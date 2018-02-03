@@ -195,7 +195,7 @@
 	"InvalidUrl"
 	{
 		"#format"	"{1:s}"
-		"en"		"{lightgreen}The URL '{1}' {green}isn't a valid file!"
+		"en"		"{lightgreen}The URL '{1}' {green}contains no valid file!"
 	}
 	"Failed"
 	{
@@ -221,6 +221,11 @@
 		"en"		"{lightgreen}Successfully downloaded and installed {green}map {1}."
 	}
 	"FinishHint"
+	{
+		"#format"	"{1:s}"
+		"en"		"Successfully downloaded map: {1}"
+	}
+	"FinishHintShort"
 	{
 		"en"		"Downloaded successful"
 	}

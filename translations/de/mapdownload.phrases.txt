@@ -182,7 +182,7 @@
 	}
 	"InvalidUrl"
 	{
-		"de"		"{lightgreen}Die URL '{1}' {green}ist keine gültige Datei!"
+		"de"		"{lightgreen}Die URL '{1}' {green}enthält keine gültige Datei!"
 	}
 	"Failed"
 	{
@@ -194,7 +194,7 @@
 	}
 	"OnlyNav"
 	{
-		"de"		"{lightgreen}Konnte nur eine {green}Navigations Datei {lightgreen}finden!"
+		"de"		"{lightgreen}Konnte lediglich eine {green}Navigations Datei {lightgreen}finden!"
 	}
 	"FoundMap"
 	{
@@ -205,6 +205,10 @@
 		"de"		"{green}Map {1} {lightgreen}erfolgreich gedownloadet und installiert."
 	}
 	"FinishHint"
+	{
+		"de"		"Map erfolgreich heruntergeladen: {1}"
+	}
+	"FinishHintShort"
 	{
 		"de"		"Download erfolgreich"
 	}

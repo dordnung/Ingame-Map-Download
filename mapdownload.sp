@@ -67,7 +67,6 @@
 // URLs
 #define UPDATE_URL_PLUGIN "http://dordnung.de/sourcemod/mapdl/update.txt"
 #define UPDATE_URL_DB "http://dordnung.de/sourcemod/mapdl/gamebanana.sq3"
-#define URL_MOTD "http://dordnung.de/sourcemod/mapdl/motd.php"
 
 
 // Client menu store defines
@@ -1612,7 +1611,7 @@ void SendCurrentStatus()
                 // Csgo need extra formating
                 if (!StrEqual(g_sGame, "csgo", false))
                 {
-                    Format(message, sizeof(message), "%T: %s\n%s\n%s\n%s", g_sModes[g_Downloads[g_iCurrentDownload][DL_MODE]], i, g_Downloads[g_iCurrentDownload][DL_NAME], bar, percent);
+                    Format(message, sizeof(message), "%T: %s\n%s\n%s", g_sModes[g_Downloads[g_iCurrentDownload][DL_MODE]], i, g_Downloads[g_iCurrentDownload][DL_NAME], bar, percent);
                 }
                 else
                 {
@@ -1621,7 +1620,15 @@ void SendCurrentStatus()
             }
             else
             {
-                Format(message, sizeof(message), "%T", "FinishHint", i);
+                // Csgo need extra formating
+                if (!StrEqual(g_sGame, "csgo", false))
+                {
+                    Format(message, sizeof(message), "%T", "FinishHint", i, g_Downloads[g_iCurrentDownload][DL_NAME]);
+                }
+                else
+                {
+                    Format(message, sizeof(message), "%T", "FinishHintShort", i);
+                }
             }
 
 
@@ -2771,17 +2778,8 @@ public int OnDecide(Menu menu, MenuAction action, int param1, int param2)
         if (choice == 2 && !isCustom)
         {
             // Motd
-            if (!StrEqual(g_sGame, "csgo", false))
-            {
-                Format(motdUrl, sizeof(motdUrl), "http://%s.gamebanana.com/maps/%s", g_sSearch[param1][GAME], g_sSearch[param1][MAPID]);
-                ShowMOTDPanel(param1, g_sSearch[param1][MAPNAME], motdUrl, MOTDPANEL_TYPE_URL);
-            }
-            else
-            {
-                Format(motdUrl, sizeof(motdUrl), "%s?url=http://%s.gamebanana.com/maps/%s", URL_MOTD, g_sSearch[param1][GAME], g_sSearch[param1][MAPID]);
-                ShowMOTDPanel(param1, g_sSearch[param1][MAPNAME], motdUrl, MOTDPANEL_TYPE_URL);
-            }
-
+            Format(motdUrl, sizeof(motdUrl), "http://%s.gamebanana.com/maps/%s", g_sSearch[param1][GAME], g_sSearch[param1][MAPID]);
+            ShowMOTDPanel(param1, g_sSearch[param1][MAPNAME], motdUrl, MOTDPANEL_TYPE_URL);
 
             // Resend Menu
             createDecideMenu(param1, isCustom);
