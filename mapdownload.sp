@@ -3131,7 +3131,7 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
 
 
                         // No .bsp or .nav files
-                        if (!StrEndsWith(content, ".nav") && !StrEndsWith(content, ".bsp") && !StrEndsWith(content, ".txt"))
+                        if (!StrEndsWith(content, ".nav") && !StrEndsWith(content, ".bsp") && !StrEndsWith(content, ".txt") && !StrEndsWith(content, ".jpg") && !StrEndsWith(content, ".jpeg"))
                         {
                             // Set File pointer to start
                             file.Seek(0, SEEK_SET);
