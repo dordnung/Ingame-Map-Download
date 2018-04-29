@@ -30,44 +30,35 @@ BINARY = gamebanana.bin
 
 OBJECTS_C += $(SQLITE3)/sqlite3.c
 OBJECTS_CPP += $(JSON)/json_value.cpp $(JSON)/json_reader.cpp $(JSON)/json_writer.cpp main.cpp
-BIN_DIR = .
 
 INCLUDE += -I./ -I$(JSON) -I$(SQLITE3)
 
-LINK = -Wl,-Bstatic -lcurl -lssl -lcrypto -lz -Wl,-Bdynamic -lm -ldl -lpthread -lrt -m32
+LDLIBS = $(shell curl-config --libs) -lm -ldl -lpthread -lrt -m32
 
-CFLAGS += -O3 -funroll-loops -Wall -pipe -pthread -msse -m32 -D_LINUX -DLINUX -DPOSIX -DCOMPILER_GCC -DNDEBUG
-CPPFLAGS += -O3 -funroll-loops -Wall -pipe -std=c++0x -pthread -msse -m32 -fpermissive -D_LINUX -DLINUX -DCURL_STATICLIB -DPOSIX -DCOMPILER_GCC -DNDEBUG -Dstricmp=strcasecmp \
-			-D_stricmp=strcasecmp -D_strnicmp=strncasecmp -Dstrnicmp=strncasecmp -D_snprintf=snprintf -D_vsnprintf=vsnprintf \
-			-D_alloca=alloca -Dstrcmpi=strcasecmp -Wno-unused-but-set-variable -Wno-unused-variable -Wno-deprecated -Wno-sign-compare -Wno-write-strings -fno-strict-aliasing -msse -mtune=i686 -march=pentium -mmmx
-
+CFLAGS += -O3 -funroll-loops -Wall -pipe -pthread -msse -DNDEBUG -m32
+CPPFLAGS += -O3 -funroll-loops -Wall -pipe -std=c++0x -pthread -msse -fpermissive -DNDEBUG -Wno-deprecated -Wno-write-strings $(shell curl-config --cflags) -m32
 
 OBJ_BIN_C := $(OBJECTS_C:%.c=%.o)
 OBJ_BIN_CPP := $(OBJECTS_CPP:%.cpp=%.o)
 
-MAKEFILE_NAME := $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
+.PHONY: default all clean
+
+default: all
+all: sqlite3 to_prog
 
 %.o: %.c
 	$(C) $(INCLUDE) $(CFLAGS) -o $@ -c $<
 	
 %.o: %.cpp
 	$(CPP) $(INCLUDE) $(CPPFLAGS) -o $@ -c $<
-
-all:
-	$(MAKE) -f $(MAKEFILE_NAME) clean
-	mkdir -p $(BIN_DIR)
-	$(MAKE) -f $(MAKEFILE_NAME) sqlite3
-	$(MAKE) -f $(MAKEFILE_NAME) to_prog
-	$(MAKE) -f $(MAKEFILE_NAME) clean
 	
 sqlite3: $(OBJ_BIN_C)
 
 to_prog: $(OBJ_BIN_CPP)
-	$(CPP) $(INCLUDE) $(OBJ_BIN_C) $(OBJ_BIN_CPP) $(LINK) -o $(BIN_DIR)/$(BINARY)
-
-default: all
+	$(CPP) $(INCLUDE) $(OBJ_BIN_C) $(OBJ_BIN_CPP) $(LDLIBS) -o $(BINARY)
 
 clean:
 	rm -f main.o
 	rm -f json/*.o
 	rm -f sqlite3/*.o
+	rm -f $(BINARY)

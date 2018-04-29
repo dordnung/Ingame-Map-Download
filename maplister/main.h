@@ -70,7 +70,7 @@ int getGameFromChoice(int arg);
 string getGameFromId(int id);
 
 // Curl
-void getPage(callback function, string page, string data, bool threading, int errorCount, string additional = "");
+void getPage(callback function, string page, string data, bool threading, int errorCount, string additional = string());
 void getPageThread(callback function, string page, string data, int errorCount, string additional, bool isThreaded);
 
 size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
