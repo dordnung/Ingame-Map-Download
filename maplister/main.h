@@ -53,14 +53,14 @@ using namespace std;
 
 
 // Thread for Curl Performances
-typedef bool(*callback)(char*, string, string, string, int);
+typedef bool(*callback)(char*, string, string, string, int, string);
 
 // Main Methods
-bool OnGotMapsCount(char *error, string result, string url, string data, int errorCount);
-bool OnGotMainPage(char *error, string result, string url, string data, int errorCount);
-bool OnGotMapsPage(char *error, string result, string url, string data, int errorCount);
-bool OnGotMapDetails(char *error, string result, string url, string data, int errorCount);
-bool OnGotMapDownloadDetails(char *error, string result, string url, string data, int errorCount);
+bool OnGotMapsCount(char *error, string result, string url, string data, int errorCount, string additional);
+bool OnGotMainPage(char *error, string result, string url, string data, int errorCount, string additional);
+bool OnGotMapsPage(char *error, string result, string url, string data, int errorCount, string additional);
+bool OnGotMapDetails(char *error, string result, string url, string data, int errorCount, string categorie);
+bool OnGotMapDownloadDetails(char *error, string result, string url, string data, int errorCount, string additional);
 
 // Print current status
 void printStatus();
@@ -70,8 +70,8 @@ int getGameFromChoice(int arg);
 string getGameFromId(int id);
 
 // Curl
-void getPage(callback function, string page, string data, bool threading, int errorCount);
-void getPageThread(callback function, string page, string data, int errorCount, bool isThreaded);
+void getPage(callback function, string page, string data, bool threading, int errorCount, string additional = "");
+void getPageThread(callback function, string page, string data, int errorCount, string additional, bool isThreaded);
 
 size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
 
