@@ -25,6 +25,8 @@
 
 #include "main.h"
 
+#define MAX_THREADS 40
+
 // The game to list maps for
 int currentGame = -1;
 
@@ -384,6 +386,19 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
         }
         return false;
     }
+
+    // Prevent too much threads
+    while (true) {
+        threadMutex.lock();
+        if (runningThreads <= MAX_THREADS) {
+            threadMutex.unlock();
+            break;
+        }
+
+        threadMutex.unlock();
+        Sleeping(1);
+    }
+
     return true;
 }
 
@@ -550,8 +565,8 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 
                     cerr << "ERROR: Couldn't get map download file size. Skipping..." << endl;
                     return true;
-                }
-            } else {
+                    }
+                } else {
                 deleteMap(data);
 
                 cerr << "ERROR: Couldn't get map download file size element. Skipping..." << endl;
@@ -563,13 +578,13 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 
             // Insert the map
             updateMapDownloadDetails(data, "https://files.gamebanana.com/maps/" + fileName, fileSizeString);
-        } else {
+            } else {
             deleteMap(data);
 
             cerr << "ERROR: Couldn't get map download file. Skipping..." << endl;
             return true;
         }
-    } else {
+        } else {
         cerr << "ERROR: Error on loading map download details page: " << error << endl;
 
         if (errorCount > 20) {
