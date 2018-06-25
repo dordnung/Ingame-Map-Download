@@ -134,7 +134,7 @@ int g_Downloads[20][DownloadInfo];
 
 
 // Global strings
-char g_sVersion[] = "2.3.0";
+char g_sVersion[] = "2.4.0";
 char g_sModes[][] = {"Downloading", "Uploading", "Compressing"};
 char g_sGameSearch[64];
 char g_sClientConfig[MAXPLAYERS + 1][256];
