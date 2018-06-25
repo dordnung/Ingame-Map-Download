@@ -3283,8 +3283,8 @@ int SearchForFolders(char[] path, int found)
         // Read extract path
         while (dir.GetNext(content, sizeof(content), type))
         {
-            // No relative paths
-            if (!StrEqual(content, ".") && !StrEqual(content, ".."))
+            // No relative paths or MACOSX paths
+            if (!StrEqual(content, ".") && !StrEqual(content, "..") && !StrEqual(content, "__MACOSX"))
             {
                 // Append found item to path
                 Format(newPath, sizeof(newPath), "%s/%s", path, content);
