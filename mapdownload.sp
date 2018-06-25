@@ -1321,6 +1321,7 @@ public void OnGetPage(bool success, const char[] error, System2HTTPRequest reque
         // Get Name
         char name[128];
         nameArray.GetString(0, name, sizeof(name));
+        delete nameArray;
 
         if (!success)
         {
@@ -1332,25 +1333,28 @@ public void OnGetPage(bool success, const char[] error, System2HTTPRequest reque
         }
         else
         {
-            // Get output
-            char[] output = new char[response.ContentLength + 1];
-            response.GetContent(output, response.ContentLength + 1);
+            bool isFirst = true;
+            char output[512];
 
-            // Explode Output
-            char explodes[64][512];
-            int found = ExplodeString(output, "href=", explodes, sizeof(explodes), sizeof(explodes[]));
-
-            // Go through results
-            char part[512];
-            char partBuffer[1024];
-            char query[1024];
-            for (int i=0; i < found; i++)
+            for (int found = 0; found < response.ContentLength;)
             {
-                int split = SplitString(explodes[i], "\">", part, sizeof(part));
+                found += response.GetContent(output, sizeof(output), found, "href=");
+                if (isFirst)
+                {
+                    isFirst = false;
+                    continue;
+                }
+
+                // Go through results
+                char part[256];
+                char partBuffer[512];
+                char query[1024];
+                int split = SplitString(output, ">", part, sizeof(part));
 
                 if (split > 0)
                 {
                     ReplaceString(part, sizeof(part), "\"", "", false);
+                    ReplaceString(part, sizeof(part), "'", "", false);
                     EscapeString(part, '%', '%', partBuffer, sizeof(partBuffer));
 
                     // Check valid
@@ -1363,9 +1367,6 @@ public void OnGetPage(bool success, const char[] error, System2HTTPRequest reque
                     }
                 }
             }
-
-            // Delete array
-            delete nameArray;
         }
     }
 }
