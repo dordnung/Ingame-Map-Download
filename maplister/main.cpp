@@ -25,7 +25,7 @@
 
 #include "main.h"
 
-#define MAX_THREADS 40
+#define MAX_THREADS 5
 
 // The game to list maps for
 int currentGame = -1;
@@ -236,9 +236,12 @@ bool OnGotMapsCount(char *error, string result, string url, string data, int err
     if ((strcmp(error, "") == 0) && result != "") {
         // Splitter for maps cpount
         vector<string> founds = splitString(result, "\"OfText\">", "<span");
+		
+		
+		
 
         // Found?
-        if (founds.size() == 3) {
+        if (founds.size() == 2) {
             // Replace garbage
             replaceString(founds[1], "of", "");
             replaceString(founds[1], "</span>", "");
@@ -273,7 +276,7 @@ bool OnGotMainPage(char *error, string result, string url, string data, int erro
         vector<string> founds = splitString(result, "class=\"CurrentPage\">");
 
         // Must be 3
-        if (founds.size() == 3) {
+        if (founds.size() == 2) {
             string found = founds[1];
 
             // Split for highest page
@@ -291,7 +294,9 @@ bool OnGotMainPage(char *error, string result, string url, string data, int erro
                 cerr << "ERROR: Couldn't get last page count. Program seems to be outdated..." << endl;
                 exit(1);
             }
-        } else {
+        } 
+		else 
+		{
             cerr << "ERROR: Couldn't get first page count. Program seems to be outdated..." << endl;
             exit(1);
         }
@@ -317,10 +322,11 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
     // Valid answer?
     if ((strcmp(error, "") == 0) && result != "") {
         // Splitter for Maps
-        vector<string> founds = splitString(result, "td class=\"Preview\"", "td class=\"Ownership\"");
+        vector<string> founds = splitString(result, "recordCell class=\"Preview\"", "recordCell class=\"Ownership\"");
 
         // Must be at least 2
-        if (founds.size() > 1) {
+        if (founds.size() > 1) 
+		{
             cout << "INFO: Found " << founds.size() - 1 << " maps on page" << endl;
 
             for (unsigned int i = 1; i < founds.size(); i++) {
@@ -349,11 +355,19 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
                 }
 
                 // Split for catId
-                vector<string> catIdSplit = splitString(found, "div class=\"Category\"", "/div>");
+				vector<string> catIdSplit = splitString(found, "recordCell class=\"Category\"", "</div><recordCell");
                 string catId;
 
-                if (catIdSplit.size() == 2) {
+				//cout << "INFO: Found " << catIdSplit.size() << "catIdSplit" << endl;
+
+				//cout << "INFO: Found " << catIdSplit[1].c_str() << "catIdSplit" << endl;
+
+                if (catIdSplit.size() == 2) 
+				{
                     catIdSplit = splitString(catIdSplit[1], "cats/", "\">");
+
+					//cout << "INFO: Found " << catIdSplit.size() << "catIdSplit 2" << endl;
+
 
                     if (catIdSplit.size() == 2) {
                         // Replace garbage
@@ -363,17 +377,20 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
 
                         catId = catIdSplit[1];
                     } else {
-                        cerr << "ERROR: Couldn't get catID split. Skipping..." << endl;
+                        cerr << "ERROR: Couldn't get catID split 1. Skipping..." << endl;
                         return true;
                     }
-                } else {
-                    cerr << "ERROR: Couldn't get catID split. Skipping..." << endl;
+                } 
+				else {
+                    cerr << "ERROR: Couldn't get catID split 2. Skipping..." << endl;
                     return true;
                 }
 
                 getPage(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=Category().name,date,mdate,downloads,name,rating,votes,views", data, true, 0, catId);
             }
-        } else {
+        } 
+		else
+		{
             cerr << "ERROR: Couldn't get maps head. Skipping..." << endl;
             return true;
         }
