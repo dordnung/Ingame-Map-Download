@@ -78,11 +78,12 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp);
 
 // SQLite 3
 void insertCategorie(string id, string name);
-void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views);
+void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views, string download = "", string size = "");
 void updateMapDownloadDetails(string id, string download, string size);
 void deleteMap(string id);
 
 
 // String operations
+string formatFileSize(float bytes);
 void replaceString(string &str, const string& oldStr, const string& newStr);
 vector<string> splitString(const string &str, const string& search, const string& to = "");

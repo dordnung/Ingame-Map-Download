@@ -238,7 +238,7 @@ bool OnGotMapsCount(char *error, string result, string url, string data, int err
         vector<string> founds = splitString(result, "\"OfText\">", "<span");
 
         // Found?
-        if (founds.size() == 3) {
+        if (founds.size() == 2) {
             // Replace garbage
             replaceString(founds[1], "of", "");
             replaceString(founds[1], "</span>", "");
@@ -272,8 +272,8 @@ bool OnGotMainPage(char *error, string result, string url, string data, int erro
         // Splitter for pages
         vector<string> founds = splitString(result, "class=\"CurrentPage\">");
 
-        // Must be 3
-        if (founds.size() == 3) {
+        // Must be 2
+        if (founds.size() == 2) {
             string found = founds[1];
 
             // Split for highest page
@@ -317,7 +317,7 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
     // Valid answer?
     if ((strcmp(error, "") == 0) && result != "") {
         // Splitter for Maps
-        vector<string> founds = splitString(result, "td class=\"Preview\"", "td class=\"Ownership\"");
+        vector<string> founds = splitString(result, "recordCell class=\"Preview\"", "recordCell class=\"Ownership\"");
 
         // Must be at least 2
         if (founds.size() > 1) {
@@ -349,7 +349,7 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
                 }
 
                 // Split for catId
-                vector<string> catIdSplit = splitString(found, "div class=\"Category\"", "/div>");
+                vector<string> catIdSplit = splitString(found, "Category</div>", "</a>");
                 string catId;
 
                 if (catIdSplit.size() == 2) {
@@ -371,7 +371,7 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
                     return true;
                 }
 
-                getPage(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=Category().name,date,mdate,downloads,name,rating,votes,views", data, true, 0, catId);
+                getPage(OnGotMapDetails, "http://api.gamebanana.com/Core/Item/Data?itemtype=Map&itemid=" + data + "&fields=Category().name,date,mdate,downloads,name,rating,votes,views,Files().aFiles()", data, true, 0, catId);
             }
         } else {
             cerr << "ERROR: Couldn't get maps head. Skipping..." << endl;
@@ -417,8 +417,10 @@ bool OnGotMapDetails(char *error, string result, string url, string data, int er
         }
 
         // Check all information
-        if (root.size() == 8) {
+        if (root.size() == 9) {
             // We have to temp. save the values, so we can check for valid data
+            string downloadUrl;
+            string fileSize;
             string categorieName = "";
             string date = "";
             string mdate = "";
@@ -461,6 +463,17 @@ bool OnGotMapDetails(char *error, string result, string url, string data, int er
                 views = to_string(root[7].asInt());
             }
 
+            if (root[8].isObject() && root[8].getMemberNames().size() > 0) {
+                string fileId = root[8].getMemberNames()[0];
+                downloadUrl = root[8][fileId].get("_sDownloadUrl", "").asString();
+                fileSize = formatFileSize(root[8][fileId].get("_nFilesize", "").asFloat());
+            }
+
+            if (downloadUrl.empty() || fileSize.empty()) {
+                cerr << "ERROR: File name stuff can't be empty. Skipping..." << endl;
+                return true;
+            }
+
             if (categorie.empty() || categorieName.empty()) {
                 cerr << "ERROR: Category stuff can't be empty. Skipping..." << endl;
                 return true;
@@ -469,11 +482,16 @@ bool OnGotMapDetails(char *error, string result, string url, string data, int er
             // Add category
             insertCategorie(categorie, categorieName);
 
-            // Add the map without download details
-            insertMap(data, categorie, date, mdate, downloads, name, rating, votes, views);
+            // Add the map with download details
+            insertMap(data, categorie, date, mdate, downloads, name, rating, votes, views, downloadUrl, fileSize);
+            // Update and print the current status
+            printStatus();
 
-            // Finally get download details
-            getPage(OnGotMapDownloadDetails, "https://gamebanana.com/maps/download/" + data, data, false, 0);
+            // Add the map without download details
+            //insertMap(data, categorie, date, mdate, downloads, name, rating, votes, views);
+
+            // Finally get download details -- not needed as long API gives file
+            //getPage(OnGotMapDownloadDetails, "https://gamebanana.com/maps/download/" + data, data, false, 0);
         } else {
             cerr << "ERROR: Couldn't get map information. Skipping..." << endl;
             return true;
@@ -502,7 +520,7 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
         if (founds.size() > 1) {
             string found = founds[1];
             string fileName;
-            char fileSizeString[32];
+            string fileSizeString;
 
             // Split for file name
             vector<string> fileNameSplit = splitString(found, "<span>", "</span>");
@@ -536,37 +554,14 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
                     replaceString(fileSizeSplit[1], "\t", "");
                     replaceString(fileSizeSplit[1], "<br>", "");
 
-                    float fileSize = stof(fileSizeSplit[1]);
-
-                    // Give FileSize a nice layout
-#ifdef _WIN32
-                    sprintf_s(fileSizeString, "%.2f B", fileSize);
-#else
-                    sprintf(fileSizeString, "%.2f B", fileSize);
-#endif
-                    if (fileSize > 1024.0) {
-                        fileSize /= 1024.0;
-#ifdef _WIN32
-                        sprintf_s(fileSizeString, "%.2f KB", fileSize);
-#else
-                        sprintf(fileSizeString, "%.2f KB", fileSize);
-#endif
-                        if (fileSize > 1024.0) {
-                            fileSize /= 1024.0;
-#ifdef _WIN32
-                            sprintf_s(fileSizeString, "%.2f MB", fileSize);
-#else
-                            sprintf(fileSizeString, "%.2f MB", fileSize);
-#endif
-                        }
-                    }
+                    fileSizeString = formatFileSize(stof(fileSizeSplit[1]));
                 } else {
                     deleteMap(data);
 
                     cerr << "ERROR: Couldn't get map download file size. Skipping..." << endl;
                     return true;
-                    }
-                } else {
+                }
+            } else {
                 deleteMap(data);
 
                 cerr << "ERROR: Couldn't get map download file size element. Skipping..." << endl;
@@ -578,13 +573,13 @@ bool OnGotMapDownloadDetails(char *error, string result, string url, string data
 
             // Insert the map
             updateMapDownloadDetails(data, "https://files.gamebanana.com/maps/" + fileName, fileSizeString);
-            } else {
+        } else {
             deleteMap(data);
 
             cerr << "ERROR: Couldn't get map download file. Skipping..." << endl;
             return true;
         }
-        } else {
+    } else {
         cerr << "ERROR: Error on loading map download details page: " << error << endl;
 
         if (errorCount > 20) {
@@ -801,10 +796,10 @@ void insertCategorie(string id, string name) {
 
 
 // Insert a new Map
-void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views) {
+void insertMap(string id, string categorie, string date, string mdate, string downloads, string name, string rating, string votes, string views, string download, string size) {
     char *errorMessage;
 
-    char *query = sqlite3_mprintf("INSERT OR IGNORE INTO `mapdl_maps_v2` (`id`, `categories_id`, `date`, `mdate`, `downloads`, `name`, `rating`, `votes`, `views`) VALUES (%s, %s, %s, %s, %s, '%q', '%s', %s, %s)", id.c_str(), categorie.c_str(), date.c_str(), mdate.c_str(), downloads.c_str(), name.c_str(), rating.c_str(), votes.c_str(), views.c_str());
+    char *query = sqlite3_mprintf("INSERT OR IGNORE INTO `mapdl_maps_v2` (`id`, `categories_id`, `date`, `mdate`, `downloads`, `name`, `rating`, `votes`, `views`, `download`, `size`) VALUES (%s, %s, %s, %s, %s, '%q', '%s', %s, %s, '%q', '%s')", id.c_str(), categorie.c_str(), date.c_str(), mdate.c_str(), downloads.c_str(), name.c_str(), rating.c_str(), votes.c_str(), views.c_str(), download.c_str(), size.c_str());
     if (sqlite3_exec(db, query, 0, 0, &errorMessage) != SQLITE_OK) {
         cerr << "ERROR: Couldn't insert map (" << query << ":" << errorMessage << "). Program seems to be outdated..." << endl;
         sqlite3_free(errorMessage);
@@ -814,7 +809,7 @@ void insertMap(string id, string categorie, string date, string mdate, string do
     }
     sqlite3_free(query);
 
-    query = sqlite3_mprintf("UPDATE `mapdl_maps_v2` SET `categories_id` = %s, `date` = %s, `mdate` = %s, `downloads` = %s, `name` = '%q', `rating` = '%s', `votes` = %s, `views` = %s WHERE `id` = %s", categorie.c_str(), date.c_str(), mdate.c_str(), downloads.c_str(), name.c_str(), rating.c_str(), votes.c_str(), views.c_str(), id.c_str());
+    query = sqlite3_mprintf("UPDATE `mapdl_maps_v2` SET `categories_id` = %s, `date` = %s, `mdate` = %s, `downloads` = %s, `name` = '%q', `rating` = '%s', `votes` = %s, `views` = %s, `download` = '%q', `size` = '%s' WHERE `id` = %s", categorie.c_str(), date.c_str(), mdate.c_str(), downloads.c_str(), name.c_str(), rating.c_str(), votes.c_str(), views.c_str(), download.c_str(), size.c_str(), id.c_str());
     if (sqlite3_exec(db, query, 0, 0, &errorMessage) != SQLITE_OK) {
         cerr << "ERROR: Couldn't update map (" << query << ":" << errorMessage << "). Program seems to be outdated..." << endl;
         sqlite3_free(errorMessage);
@@ -858,6 +853,36 @@ void deleteMap(string id) {
 
 
 //// STRING OPERATIONS ///
+
+// Replace a string with a new str
+string formatFileSize(float bytes) {
+    char fileSizeString[32];
+
+    // Give FileSize a nice layout
+#ifdef _WIN32
+    sprintf_s(fileSizeString, "%.2f B", bytes);
+#else
+    sprintf(fileSizeString, "%.2f B", bytes);
+#endif
+    if (bytes > 1024.0) {
+        bytes /= 1024.0;
+#ifdef _WIN32
+        sprintf_s(fileSizeString, "%.2f KB", bytes);
+#else
+        sprintf(fileSizeString, "%.2f KB", bytes);
+#endif
+        if (bytes > 1024.0) {
+            bytes /= 1024.0;
+#ifdef _WIN32
+            sprintf_s(fileSizeString, "%.2f MB", bytes);
+#else
+            sprintf(fileSizeString, "%.2f MB", bytes);
+#endif
+        }
+    }
+
+    return fileSizeString;
+}
 
 // Replace a string with a new str
 void replaceString(string &str, const string& oldStr, const string& newStr) {
