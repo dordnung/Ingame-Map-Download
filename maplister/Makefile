@@ -36,7 +36,7 @@ INCLUDE += -I./ -I$(JSON) -I$(SQLITE3)
 LDLIBS = $(shell curl-config --libs) -lm -ldl -lpthread -lrt -m32
 
 CFLAGS += -O3 -funroll-loops -Wall -pipe -pthread -msse -DNDEBUG -m32
-CPPFLAGS += -O3 -funroll-loops -Wall -pipe -std=c++0x -pthread -msse -fpermissive -DNDEBUG -Wno-deprecated -Wno-write-strings $(shell curl-config --cflags) -m32
+CPPFLAGS += -O3 -funroll-loops -Wall -pipe -std=c++11 -pthread -msse -fpermissive -DNDEBUG -Wno-deprecated -Wno-write-strings $(shell curl-config --cflags) -m32
 
 OBJ_BIN_C := $(OBJECTS_C:%.c=%.o)
 OBJ_BIN_CPP := $(OBJECTS_CPP:%.cpp=%.o)

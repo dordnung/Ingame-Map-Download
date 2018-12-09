@@ -18,7 +18,9 @@
 #include <memory>
 #include <set>
 #include <limits>
-
+#if defined(__BORLANDC__)
+#include <stdio.h>
+#endif
 #if defined(_MSC_VER)
 #if !defined(WINCE) && defined(__STDC_SECURE_LIB__) && _MSC_VER >= 1500 // VC++ 9.0 and above 
 #define snprintf sprintf_s
@@ -43,8 +45,8 @@ static int       stackDepth_g = 0;  // see readValue()
 
 namespace Json {
 
-#if __GNUC__ >= 6
-typedef std::scoped_ptr<CharReader> const  CharReaderPtr;
+#if JSON_HAS_UNIQUE_PTR
+typedef std::unique_ptr<CharReader> const  CharReaderPtr;
 #else
 typedef std::auto_ptr<CharReader>          CharReaderPtr;
 #endif

@@ -16,6 +16,9 @@
 #include <cstring>
 #include <cstdio>
 
+#if defined(__BORLANDC__)
+#include <stdio.h>
+#endif
 #if defined(_MSC_VER) && _MSC_VER >= 1200 && _MSC_VER < 1800 // Between VC++ 6.0 and VC++ 11.0
 #include <float.h>
 #define isfinite _finite
@@ -54,8 +57,8 @@
 
 namespace Json {
 
-#if __GNUC__ >= 6
-typedef std::scoped_ptr<StreamWriter> const  StreamWriterPtr;
+#if JSON_HAS_UNIQUE_PTR
+typedef std::unique_ptr<StreamWriter> const  StreamWriterPtr;
 #else
 typedef std::auto_ptr<StreamWriter>          StreamWriterPtr;
 #endif
