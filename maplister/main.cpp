@@ -283,7 +283,7 @@ bool OnGotMainPage(char *error, string result, string url, string data, int erro
             if (size > 3) {
                 // Replace garbage
                 replaceString(pageCount[size - 2], "\n", "");
-                replaceString(pageCount[size - 21], "\t", "");
+                replaceString(pageCount[size - 2], "\t", "");
 
                 // Now get the page count
                 pages = atoi(pageCount[size - 2].c_str());
