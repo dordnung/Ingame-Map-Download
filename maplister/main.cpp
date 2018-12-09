@@ -280,13 +280,13 @@ bool OnGotMainPage(char *error, string result, string url, string data, int erro
             vector<string> pageCount = splitString(found, "SubmissionsList\">", "</a>");
 
             int size = pageCount.size();
-            if (size > 2) {
+            if (size > 3) {
                 // Replace garbage
-                replaceString(pageCount[size - 1], "\n", "");
-                replaceString(pageCount[size - 1], "\t", "");
+                replaceString(pageCount[size - 2], "\n", "");
+                replaceString(pageCount[size - 21], "\t", "");
 
                 // Now get the page count
-                pages = atoi(pageCount[size - 1].c_str());
+                pages = atoi(pageCount[size - 2].c_str());
             } else {
                 cerr << "ERROR: Couldn't get last page count. Program seems to be outdated..." << endl;
                 exit(1);
@@ -349,7 +349,7 @@ bool OnGotMapsPage(char *error, string result, string url, string data, int erro
                 }
 
                 // Split for catId
-                vector<string> catIdSplit = splitString(found, "Category</div>", "</a>");
+                vector<string> catIdSplit = splitString(found, "DirectCategory\">", "</a>");
                 string catId;
 
                 if (catIdSplit.size() == 2) {
