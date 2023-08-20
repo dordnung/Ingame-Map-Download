@@ -1,30 +1,3 @@
-/**
- * -----------------------------------------------------
- * File         mapdownload.sp
- * Authors      David Ordnung
- * License      GPLv3
- * Web          http://dordnung.de
- * -----------------------------------------------------
- * 
- * 
- * Copyright (C) 2013-2017 David Ordnung
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>
- */
-
-
-
 // Sourcemod
 #include <sourcemod>
 
@@ -89,11 +62,6 @@
 #define CURRENT_MENU 16
 #define NUMBER_ELEMENTS 17
 
-
-
-
-
-
 // List of dl modes
 enum Modus
 {
@@ -102,35 +70,26 @@ enum Modus
     MODUS_COMPRESS,
     MODUS_FINISH
 }
-
-
-
-
 // List of download information
 // Use old syntax here, otherwise enums like this won't work anymore ):
-enum DownloadInfo
+enum struct DownloadInfo
 {
-    DL_CLIENT,                                  // Client of current download
-    DL_FINISH,                                  // Finished files
-    Float:DL_CURRENT,                           // Current Bytes
-    Float:DL_TOTAL,                             // Total bytes
-    Modus:DL_MODE,                              // Current dl Modes
-    String:DL_ID[32],                           // Map ID
-    String:DL_NAME[128],                        // Map Name
-    String:DL_FILE[128],                        // Download Link
-    String:DL_SAVE[PLATFORM_MAX_PATH + 1],      // Path to save to
-    Handle:DL_FILES,                            // Array to store files
-    Handle:DL_FTPFILES                          // Array to store ftp files
+    int DL_CLIENT;                              // Client of current download
+    int DL_FINISH;                              // Finished files
+    float DL_CURRENT;                           // Current Bytes
+    float DL_TOTAL;                             // Total bytes
+    Modus DL_MODE;                              // Current dl Modes
+    char DL_ID[32];                             // Map ID
+    char DL_NAME[128];                          // Map Name
+    char DL_FILE[128];                          // Download Link
+    char DL_SAVE[PLATFORM_MAX_PATH + 1];        // Path to save to
+    Handle DL_FILES;                            // Array to store files
+    Handle DL_FTPFILES;                         // Array to store ftp files
 }
 
-
-
-
-
-
-
 // Global download list
-int g_Downloads[20][DownloadInfo];
+//int g_Downloads[20][DownloadInfo];
+DownloadInfo g_Downloads[20];
 
 
 // Global strings
@@ -405,18 +364,12 @@ public void OnPluginStart()
     g_hFTPPW = AutoExecConfig_CreateConVar("mapdownload_ftp_pass", "password", "Password for username to login", FCVAR_PROTECTED);
     g_hFTPPath = AutoExecConfig_CreateConVar("mapdownload_ftp_path", "path/on/fastdl", "Path to your FastDL gamedir folder, including folders maps, sound, and so on", FCVAR_PROTECTED);
 
-
-
     // Exec Config
     AutoExecConfig(true, "plugin.mapdownload");
 
     // clean Config
     AutoExecConfig_CleanFile();
 }
-
-
-
-
 
 // Config is executed
 public void OnConfigsExecuted()
@@ -427,7 +380,6 @@ public void OnConfigsExecuted()
     // Read all convars
     // Ints
     g_iFTPPort = g_hFTPPort.IntValue;
-
 
     // Bools
     g_bNotice = g_hNotice.BoolValue;
@@ -525,7 +477,6 @@ public void OnConfigsExecuted()
     }
     
 
-
     // Disable Hud Hint sound
     ConVar cvar = FindConVar("sv_hudhint_sound");
     if (cvar != null)
@@ -539,7 +490,6 @@ public void OnConfigsExecuted()
         // Reset
         g_iCurrentDownload = -1;
         g_iTotalDownloads = 0;
-    
 
         // Now register command to open menu
         RegAdminCmd(g_sCommand, OpenMenu, ReadFlagString(g_sFlag));
@@ -561,15 +511,12 @@ public void OnConfigsExecuted()
         g_bFirst = false;
     }
 
-
-
     // Change color for csgo
     if (StrEqual(g_sGame, "csgo", false))
     {
         CReplaceColor(Color_Green, Color_Lightred);
         CReplaceColor(Color_Lightgreen, Color_Lime);
     }
-
 
     // No Lightgreen?
     if (!CColorAllowed(Color_Lightgreen))
@@ -581,10 +528,6 @@ public void OnConfigsExecuted()
     // Load the downloadlist
     ParseDownloadList();
 }
-
-
-
-
 
 // All plugins are loaded now
 public void OnAllPluginsLoaded()
@@ -613,8 +556,6 @@ public void OnAllPluginsLoaded()
     }
 }
 
-
-
 // Logging Stuff
 void Log(char[] fmt, any ...)
 {
@@ -628,10 +569,6 @@ void Log(char[] fmt, any ...)
 
     LogToFile(file, "[ MAPDL ] %s", format);
 }
-
-
-
-
 
 // Client cookies are cached
 public void OnClientCookiesCached(int client)
@@ -691,10 +628,6 @@ public void OnClientCookiesCached(int client)
     }
 }
 
-
-
-
-
 // Set Title at search
 void SetTitleWithCookie(int client)
 {
@@ -753,10 +686,6 @@ void SetTitleWithCookie(int client)
     }
 }
 
-
-
-
-
 // Gets the Client cookie
 int GetClientConfigCookie(int client)
 {
@@ -772,9 +701,6 @@ int GetClientConfigCookie(int client)
 
     return -1;
 }
-
-
-
 
 // Prepare folders and connect to database
 void PreparePlugin()
@@ -814,7 +740,6 @@ void PreparePlugin()
 
     // Get the game
     GetGameFolderName(g_sGame, sizeof(g_sGame));
-
 
     // We need the gamename of gamebanana
     if (StrEqual(g_sGame, "tf", false))
@@ -869,10 +794,6 @@ void PreparePlugin()
     }
 }
 
-
-
-
-
 // Prepare folders and connect to database
 void ParseDownloadList()
 {
@@ -913,14 +834,11 @@ void ParseDownloadList()
                 AddFileToDownloadsTable(readbuffer);
             }
 
-
             // Close File
             file.Close();
         }
     }
 }
-
-
 
 // Create DB Connection
 public void PrepareDB(bool success, const char[] error, System2HTTPRequest request, System2HTTPResponse response, HTTPRequestMethod method)
@@ -969,7 +887,6 @@ public void PrepareDB(bool success, const char[] error, System2HTTPRequest reque
 
     char sqlError[256];
 
-
     // Connect to database
     KeyValues dbValue = new KeyValues("Databases");
     
@@ -984,7 +901,6 @@ public void PrepareDB(bool success, const char[] error, System2HTTPRequest reque
 
     // Close Keyvalues
     delete dbValue;
-
 
     // Check valid connection
     if (g_hDatabase == null)
@@ -1006,8 +922,6 @@ public void PrepareDB(bool success, const char[] error, System2HTTPRequest reque
         g_hDatabase.Execute(txn, OnDBStartedUp, OnDBStartUpFailed);
     }
 }
-
-
 
 // Everything is started up
 public void OnDBStartedUp(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
@@ -1101,7 +1015,6 @@ void ParseLists()
             char searchBuffer[256];
             char searchFinal[256];
 
-
             // Get Section and key
             listKeyValue.GetSectionName(section, sizeof(section));
             listKeyValue.GetString(NULL_STRING, search, sizeof(search));
@@ -1174,8 +1087,6 @@ void ParseLists()
                 // Escape search
                 g_hDatabase.Escape(search, searchBuffer, sizeof(searchBuffer));
                 EscapeString(searchBuffer, '_', '?', searchFinal, sizeof(searchFinal));
-
-
 
                 // whitelist?
                 if (StrEqual(section, "whitelist", false))
@@ -1269,7 +1180,6 @@ void ParseLists()
 }
 
 
-
 // All Custom Urls added
 public void OnAddedCustomUrls(Database db, any data, int numQueries, DBResultSet[] results, any[] queryData)
 {
@@ -1310,8 +1220,6 @@ public void OnAddedCustomUrlsFailed(Database db, any data, int numQueries, const
 
     LogError("Map Download couldn't add custom urls. Error: '%s'", error);
 }
-
-
 
 public void OnGetPage(bool success, const char[] error, System2HTTPRequest request, System2HTTPResponse response, HTTPRequestMethod method)
 {
@@ -1371,16 +1279,10 @@ public void OnGetPage(bool success, const char[] error, System2HTTPRequest reque
     }
 }
 
-
-
-
 // Callback of SQL
 public void SQL_CallBack(Database db, DBResultSet results, const char[] error, any data)
 {
 }
-
-
-
 
 // Deletes complete path
 // Recursive method
@@ -1389,11 +1291,8 @@ void DeletePath(char[] path)
     // Name buffer
     char buffer[128];
 
-
     // Open dir
     DirectoryListing dir = OpenDirectory(path);
-
-
     // Found?
     if (dir != null)
     {
@@ -1433,8 +1332,6 @@ void DeletePath(char[] path)
     RemoveDir(path);
 }
 
-
-
 // Is player valid?
 bool IsClientValid(int client)
 {
@@ -1454,8 +1351,6 @@ bool IsClientValid(int client)
     return false;
 }
 
-
-
 // Is player admin?
 bool IsClientAdmin(int client)
 {
@@ -1465,8 +1360,6 @@ bool IsClientAdmin(int client)
     return (need <= 0 || (clientFlags & need) || (clientFlags & ADMFLAG_ROOT));
 }
 
-
-
 // Reset client
 public void OnClientConnected(int client)
 {
@@ -1475,8 +1368,6 @@ public void OnClientConnected(int client)
     strcopy(g_sLogin[client][1], sizeof(g_sLogin[][]), "");
     strcopy(g_sClientConfig[client], sizeof(g_sClientConfig[]), "");
 }
-
-
 
 // Sends the current status
 void SendCurrentStatus()
@@ -1490,21 +1381,19 @@ void SendCurrentStatus()
     float total;
     float per;
 
-
     // First check if finished
-    if (g_Downloads[g_iCurrentDownload][DL_MODE] != MODUS_FINISH)
+    if (g_Downloads[g_iCurrentDownload].DL_MODE != MODUS_FINISH)
     {
         // Not finished 
-        current = g_Downloads[g_iCurrentDownload][DL_CURRENT];
-        total = g_Downloads[g_iCurrentDownload][DL_TOTAL];
+        current = g_Downloads[g_iCurrentDownload].DL_CURRENT;
+        total = g_Downloads[g_iCurrentDownload].DL_TOTAL;
         per = ((current / total) * 100.0);
 
-        
         // modus?
-        if (g_Downloads[g_iCurrentDownload][DL_MODE] == MODUS_COMPRESS)
+        if (g_Downloads[g_iCurrentDownload].DL_MODE == MODUS_COMPRESS)
         {
-            int iTotal = GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]);
-            int iCurrent = g_Downloads[g_iCurrentDownload][DL_FINISH];
+            int iTotal = GetArraySize(g_Downloads[g_iCurrentDownload].DL_FILES);
+            int iCurrent = g_Downloads[g_iCurrentDownload].DL_FINISH;
             per = (float(iCurrent) / iTotal) * 100.0;
 
 
@@ -1527,24 +1416,24 @@ void SendCurrentStatus()
             }
         }
 
-        else if (g_Downloads[g_iCurrentDownload][DL_MODE] == MODUS_UPLOAD)
+        else if (g_Downloads[g_iCurrentDownload].DL_MODE == MODUS_UPLOAD)
         {
             // We always need a lot of percent signs^^
             if (g_hHudSync == null && !StrEqual(g_sGame, "csgo", false) && !StrEqual(g_sGame, "dods", false))
             {
-                Format(percent, sizeof(percent), "%.2f%%%%%%%%%% - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
+                Format(percent, sizeof(percent), "%.2f%%%%%%%%%% - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload].DL_FINISH, GetArraySize(g_Downloads[g_iCurrentDownload].DL_FILES));
             }
             else if (g_hHudSync != null)
             {
-                Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB\n%i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
+                Format(percent, sizeof(percent), "%.2f%%%%%% - %.0fkB / %.0fkB\n%i / %i", per, current, total, g_Downloads[g_iCurrentDownload].DL_FINISH, GetArraySize(g_Downloads[g_iCurrentDownload].DL_FILES));
             }
             else if (StrEqual(g_sGame, "dods", false))
             {
-                Format(percent, sizeof(percent), "%.2f - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
+                Format(percent, sizeof(percent), "%.2f - %.0fkB / %.0fkB - %i / %i", per, current, total, g_Downloads[g_iCurrentDownload].DL_FINISH, GetArraySize(g_Downloads[g_iCurrentDownload].DL_FILES));
             }
             else
             {
-                Format(percent, sizeof(percent), "%.0f%%%%%% - %i/%i", per, g_Downloads[g_iCurrentDownload][DL_FINISH], GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]));
+                Format(percent, sizeof(percent), "%.0f%%%%%% - %i/%i", per, g_Downloads[g_iCurrentDownload].DL_FINISH, GetArraySize(g_Downloads[g_iCurrentDownload].DL_FILES));
             }
         }
 
@@ -1568,8 +1457,6 @@ void SendCurrentStatus()
                 Format(percent, sizeof(percent), "%.0f%%%%%% - %.0f/%.0f kB", per, current, total);
             }
         }
-
-        
 
         // Create Bar
         Format(bar, sizeof(bar), "[");
@@ -1607,16 +1494,16 @@ void SendCurrentStatus()
         // Find targets
         if (IsClientValid(i) && (g_bShow || IsClientAdmin(i)))
         {
-            if (g_Downloads[g_iCurrentDownload][DL_MODE] != MODUS_FINISH)
+            if (g_Downloads[g_iCurrentDownload].DL_MODE != MODUS_FINISH)
             {
                 // Csgo need extra formating
                 if (!StrEqual(g_sGame, "csgo", false))
                 {
-                    Format(message, sizeof(message), "%T: %s\n%s\n%s", g_sModes[g_Downloads[g_iCurrentDownload][DL_MODE]], i, g_Downloads[g_iCurrentDownload][DL_NAME], bar, percent);
+                    Format(message, sizeof(message), "%T: %s\n%s\n%s", g_sModes[g_Downloads[g_iCurrentDownload].DL_MODE], i, g_Downloads[g_iCurrentDownload].DL_NAME, bar, percent);
                 }
                 else
                 {
-                    Format(message, sizeof(message), "%T\n%s\n", g_sModes[g_Downloads[g_iCurrentDownload][DL_MODE]], i, percent);
+                    Format(message, sizeof(message), "%T\n%s\n", g_sModes[g_Downloads[g_iCurrentDownload].DL_MODE], i, percent);
                 }
             }
             else
@@ -1624,7 +1511,7 @@ void SendCurrentStatus()
                 // Csgo need extra formating
                 if (!StrEqual(g_sGame, "csgo", false))
                 {
-                    Format(message, sizeof(message), "%T", "FinishHint", i, g_Downloads[g_iCurrentDownload][DL_NAME]);
+                    Format(message, sizeof(message), "%T", "FinishHint", i, g_Downloads[g_iCurrentDownload].DL_NAME);
                 }
                 else
                 {
@@ -1648,8 +1535,6 @@ void SendCurrentStatus()
     }
 }
 
-
-
 // The notice timer
 public Action NoticeTimer(Handle timer, any data)
 {
@@ -1670,7 +1555,6 @@ public Action NoticeTimer(Handle timer, any data)
 
         Format(commandBufferDownload, sizeof(commandBufferDownload), g_sCommandDownload);
         ReplaceString(commandBufferDownload, sizeof(commandBufferDownload), "sm_", "");
-
 
         // Client loop
         for (int i=1; i < MaxClients; i++)
@@ -1701,10 +1585,8 @@ public Action NoticeTimer(Handle timer, any data)
             }
         }
 
-
         // Increase
         g_iCurrentNotice++;
-
 
         if ((g_bUseCustom && g_iCurrentNotice == 4) || (!g_bUseCustom && g_iCurrentNotice == 3))
         {
@@ -1717,12 +1599,9 @@ public Action NoticeTimer(Handle timer, any data)
         return Plugin_Continue;
     }
 
-
     // If not, stop timer
     return Plugin_Handled;
 }
-
-
 
 // Gets the filename of a path or the last dir
 void GetFileName(const char[] path, char[] buffer, int size)
@@ -1735,7 +1614,6 @@ void GetFileName(const char[] path, char[] buffer, int size)
         return;
     }
     
-
     // Linux
     int pos = FindCharInString(path, '/', true);
     
@@ -1752,8 +1630,6 @@ void GetFileName(const char[] path, char[] buffer, int size)
     // Copy File Name
     strcopy(buffer, size, path[pos]);
 }
-
-
 
 // Checks if a strings end with specific string
 bool StrEndsWith(char[] str, char[] str2)
@@ -1787,12 +1663,9 @@ bool StrEndsWith(char[] str, char[] str2)
         }
     }
 
-
     // if we come until here, it's true
     return true;
 }
-
-
 
 // Save Login data
 public Action OnSetLoginData(int client, int args)
@@ -1817,12 +1690,6 @@ public Action OnSetLoginData(int client, int args)
     return Plugin_Handled;
 }
 
-
-
-
-
-
-
 /*
 **************
 
@@ -1830,8 +1697,6 @@ MENU
 
 **************
 */
-
-
 
 // Open Custom menu
 public Action OpenMenuCustom(int client, int args)
@@ -1856,9 +1721,6 @@ public Action OpenMenuCustom(int client, int args)
     return Plugin_Continue;
 }
 
-
-
-
 // Open  menu
 public Action OpenMenu(int client, int args)
 {
@@ -1875,8 +1737,6 @@ public Action OpenMenu(int client, int args)
     // Finish
     return Plugin_Handled;
 }
-
-
 
 // Download a Map directly
 public Action DownloadMapDirect(int client, int args)
@@ -1928,10 +1788,6 @@ public Action DownloadMapDirect(int client, int args)
     return Plugin_Continue;
 }
 
-
-
-
-
 // Prepare a new menu
 void PrepareMenu(int client, char[] argument, bool isCustom)
 {
@@ -1973,7 +1829,6 @@ void PrepareMenu(int client, char[] argument, bool isCustom)
             g_iLast[client][0] = 0;
             g_iLast[client][1] = 0;
 
-
             // Is a argument given?
             if (!StrEqual(argument, ""))
             {
@@ -2010,9 +1865,6 @@ void PrepareMenu(int client, char[] argument, bool isCustom)
         CPrintToChat(client, "%s %t", g_sTagChat, "DBWait");
     }
 }
-
-
-
 
 // Open the choice menu
 void OpenSortChoiceMenu(int client)
@@ -2062,10 +1914,6 @@ void OpenSortChoiceMenu(int client)
     menu.Display(client, 30);
 }
 
-
-
-
-
 // Client pressed a sort type
 public int OnSortChoose(Menu menu, MenuAction action, int param1, int param2)
 {
@@ -2100,10 +1948,6 @@ public int OnSortChoose(Menu menu, MenuAction action, int param1, int param2)
         delete menu;
     }
 }
-
-
-
-
 // Open the config menu
 void OpenConfigMenu(int client)
 {
@@ -2122,9 +1966,6 @@ void OpenConfigMenu(int client)
 
     menu.Display(client, 30);
 }
-
-
-
 
 // Client pressed a sort type
 public int OnChooseSortType(Menu menu, MenuAction action, int param1, int param2)
@@ -2204,9 +2045,6 @@ public int OnChooseSortType(Menu menu, MenuAction action, int param1, int param2
     }
 }
 
-
-
-
 // Client pressed a sort type
 public int OnChooseSort(Menu menu, MenuAction action, int param1, int param2)
 {
@@ -2239,17 +2077,11 @@ public int OnChooseSort(Menu menu, MenuAction action, int param1, int param2)
     }
 }
 
-
-
-
 // Open the menu with all Maps
 void OpenMenuWithAllMaps(int client)
 {
     SendCategories(client);
 }
-
-
-
 
 // Send the categories to the client
 void SendCategories(int client)
@@ -2292,10 +2124,6 @@ void SendCategories(int client)
     g_hDatabase.Query(OnSendCategories, query, GetClientUserId(client));
 }
 
-
-
-
-
 // Categories to menu
 public void OnSendCategories(Database db, DBResultSet results, const char[] error, any userid)
 {
@@ -2327,8 +2155,6 @@ public void OnSendCategories(Database db, DBResultSet results, const char[] erro
                 {
                     menu.SetTitle("%T", "Found", client, g_sSearch[client][SEARCHREAL]);
                 }
-
-
                 do
                 {
                     // Fetch results
@@ -2359,9 +2185,6 @@ public void OnSendCategories(Database db, DBResultSet results, const char[] erro
         }
     } 
 }
-
-
-
 
 // Client pressed category
 public int OnCategoryChoose(Menu menu, MenuAction action, int param1, int param2)
@@ -2397,9 +2220,6 @@ public int OnCategoryChoose(Menu menu, MenuAction action, int param1, int param2
         delete menu;
     }
 }
-
-
-
 
 // Send maps to client
 void SendMaps(int client, char[] sort)
@@ -2493,9 +2313,6 @@ void SendMaps(int client, char[] sort)
     }
 }
 
-
-
-
 // Maps to menu
 public void OnSendMaps(Database db, DBResultSet results, const char[] error, any userid)
 {
@@ -2512,7 +2329,6 @@ public void OnSendMaps(Database db, DBResultSet results, const char[] error, any
             {
                 // Create menu
                 Menu menu = new Menu(OnMapChoose);
-
                 char game[16];
                 char name[128];
                 char date[64];
@@ -2530,8 +2346,6 @@ public void OnSendMaps(Database db, DBResultSet results, const char[] error, any
                 // Title
                 menu.SetTitle("%T", "ChooseMap", client);
                 menu.ExitBackButton = true;
-
-
                 do
                 {
                     // Fetch results
@@ -2639,10 +2453,6 @@ public void OnSendMaps(Database db, DBResultSet results, const char[] error, any
         }
     } 
 }
-
-
-
-
 
 // Client pressed a map
 public int OnMapChoose(Menu menu, MenuAction action, int param1, int param2)
@@ -2754,9 +2564,6 @@ void createDecideMenu(int client, bool isCustom)
     menuNew.Display(client, MENU_TIME_FOREVER);
 }
 
-
-
-
 // Player decided to download a map
 public int OnDecide(Menu menu, MenuAction action, int param1, int param2)
 {
@@ -2779,7 +2586,7 @@ public int OnDecide(Menu menu, MenuAction action, int param1, int param2)
         if (choice == 2 && !isCustom)
         {
             // Motd
-            Format(motdUrl, sizeof(motdUrl), "http://%s.gamebanana.com/maps/%s", g_sSearch[param1][GAME], g_sSearch[param1][MAPID]);
+            Format(motdUrl, sizeof(motdUrl), "https://files.gamebanana.com/mods/%s", g_sSearch[param1][GAME], g_sSearch[param1][MAPID]);
             ShowMOTDPanel(param1, g_sSearch[param1][MAPNAME], motdUrl, MOTDPANEL_TYPE_URL);
 
             // Resend Menu
@@ -2812,12 +2619,6 @@ public int OnDecide(Menu menu, MenuAction action, int param1, int param2)
     }
 }
 
-
-
-
-
-
-
 /*
 **************
 
@@ -2826,19 +2627,13 @@ Download
 **************
 */
 
-
-
-
-
 // Now we can start
 void StartDownloadingMap(int client, const char[] id, const char[] map, const char[] link, bool isCustom)
 {
     char savePath[PLATFORM_MAX_PATH + 1];
 
-
     // Maps on Gamebanana have an unique ID, we use this for the save path
-    Format(savePath, sizeof(savePath), "%s/%s", g_sPluginPath, id);
-
+    Format(savePath, sizeof(savePath), "maps/%s", g_sPluginPath, id);
 
     // Dir exists already?
     if (DirExists(savePath))
@@ -2847,10 +2642,8 @@ void StartDownloadingMap(int client, const char[] id, const char[] map, const ch
         DeletePath(savePath);
     }
 
-
     // Create new
     CreateDirectory(savePath, 511);
-
 
     // Log
     Log("%L: Downloading Map %s(%s)", client, map, link);
@@ -2865,59 +2658,55 @@ void StartDownloadingMap(int client, const char[] id, const char[] map, const ch
         GetFileName(map, savePath, sizeof(savePath));
     }
 
-
     Format(savePath, sizeof(savePath), "%s/%s", g_sPluginPath, savePath);
 
-
     // Init download
-    g_Downloads[g_iTotalDownloads][DL_CLIENT] = client;
-    g_Downloads[g_iTotalDownloads][DL_FINISH] = 0;
-    g_Downloads[g_iTotalDownloads][DL_CURRENT] = 0.0;
-    g_Downloads[g_iTotalDownloads][DL_TOTAL] = 0.0;
-
+    g_Downloads[g_iTotalDownloads].DL_CLIENT = client;
+    g_Downloads[g_iTotalDownloads].DL_FINISH = 0;
+    g_Downloads[g_iTotalDownloads].DL_CURRENT = 0.0;
+    g_Downloads[g_iTotalDownloads].DL_TOTAL = 0.0;
 
     // Strings
     if (!isCustom)
     {
-        strcopy(g_Downloads[g_iTotalDownloads][DL_NAME], 128, map);
-        Format(g_Downloads[g_iTotalDownloads][DL_FILE], 128, link);
+        char fileExtension[10]; // To store the file extension
+        GetFileExtension(link, fileExtension, sizeof(fileExtension)); // Extract the file extension from the original link
+
+        strcopy(g_Downloads[g_iTotalDownloads].DL_NAME, 128, map);
+        Format(g_Downloads[g_iTotalDownloads].DL_FILE, 128, "https://files.gamebanana.com/mods/%s.%s", map, fileExtension); // Use the extracted extension
     }
     else
     {
-        SplitString(map, ".", g_Downloads[g_iTotalDownloads][DL_NAME], 128);
-        Format(g_Downloads[g_iTotalDownloads][DL_FILE], 128, "%s/%s", link, map);
+        SplitString(map, ".", g_Downloads[g_iTotalDownloads].DL_NAME, 128);
+        Format(g_Downloads[g_iTotalDownloads].DL_FILE, 128, "%s/%s", link, map);
     }
 
-    strcopy(g_Downloads[g_iTotalDownloads][DL_ID], 32, id);
-    strcopy(g_Downloads[g_iTotalDownloads][DL_SAVE], PLATFORM_MAX_PATH+1, savePath);
-
+    strcopy(g_Downloads[g_iTotalDownloads].DL_ID, 32, id);
+    strcopy(g_Downloads[g_iTotalDownloads].DL_SAVE, PLATFORM_MAX_PATH+1, savePath);
 
     // File array
-    if (g_Downloads[g_iTotalDownloads][DL_FILES] != null)
+    if (g_Downloads[g_iTotalDownloads].DL_FILES != null)
     {
-        CloseHandle(g_Downloads[g_iTotalDownloads][DL_FILES]);
+        CloseHandle(g_Downloads[g_iTotalDownloads].DL_FILES);
     }
     
     // Create new Array
-    g_Downloads[g_iTotalDownloads][DL_FILES] = CreateArray(PLATFORM_MAX_PATH + 1);
-
+    g_Downloads[g_iTotalDownloads].DL_FILES = CreateArray(PLATFORM_MAX_PATH + 1);
 
     // FTP File array
-    if (g_Downloads[g_iTotalDownloads][DL_FTPFILES] != null)
+    if (g_Downloads[g_iTotalDownloads].DL_FTPFILES != null)
     {
-        CloseHandle(g_Downloads[g_iTotalDownloads][DL_FTPFILES]);
+        CloseHandle(g_Downloads[g_iTotalDownloads].DL_FTPFILES);
     }
     
     // Create new Array
-    g_Downloads[g_iTotalDownloads][DL_FTPFILES] = CreateArray(PLATFORM_MAX_PATH+  1);
-
+    g_Downloads[g_iTotalDownloads].DL_FTPFILES = CreateArray(PLATFORM_MAX_PATH+  1);
 
     // Mode
-    g_Downloads[g_iTotalDownloads][DL_MODE] = MODUS_DOWNLOAD;
+    g_Downloads[g_iTotalDownloads].DL_MODE = MODUS_DOWNLOAD;
 
     // Increase total downloads
     g_iTotalDownloads++;
-
 
     // If not download in queue, start it right now
     if (g_iTotalDownloads == 1)
@@ -2926,7 +2715,50 @@ void StartDownloadingMap(int client, const char[] id, const char[] map, const ch
     }
 }
 
+bool GetFileExtension(const char[] path, char[] extension, int size)
+{
+    int len = strlen(path);
+    int lastDot = -1;
 
+    // Find the last dot in the path
+    for (int i = len - 1; i >= 0; i--)
+    {
+        if (path[i] == '.')
+        {
+            lastDot = i;
+            break;
+        }
+    }
+
+    // If a dot was found, copy the extension
+    if (lastDot != -1)
+    {
+        strcopy(extension, size, path[lastDot + 1]);
+
+        // Special handling for compound extensions like tar.gz
+        if (strcmp(extension, "gz") == 0 && len - lastDot >= 6 && strncmp(path[lastDot - 3], "tar", 3) == 0)
+        {
+            strcopy(extension, size, "tar.gz");
+        }
+        else if (strcmp(extension, "bz2") == 0)
+        {
+            // Handle .bz2 here if needed
+        }
+    }
+    else
+    {
+        extension[0] = '\0'; // No extension found
+        return false;
+    }
+
+    // Check if the extension is one of the supported types
+    if (strcmp(extension, "zip") == 0 || strcmp(extension, "rar") == 0 || strcmp(extension, "7z") == 0 || strcmp(extension, "tar") == 0 || strcmp(extension, "tar.gz") == 0 || strcmp(extension, "bz2") == 0 || strcmp(extension, "nav") == 0 || strcmp(extension, "bsp") == 0 || strcmp(extension, "txt") == 0 || strcmp(extension, "jpg") == 0)
+    {
+        return true;
+    }
+
+    return false;
+}
 
 
 // Start download
@@ -2936,20 +2768,19 @@ void DownloadMap()
     g_iCurrentDownload++;
 
     // Finally start the download
-    System2HTTPRequest downloadRequest = new System2HTTPRequest(OnDownloadFinished, g_Downloads[g_iCurrentDownload][DL_FILE]);
+    System2HTTPRequest downloadRequest = new System2HTTPRequest(OnDownloadFinished, g_Downloads[g_iCurrentDownload].DL_FILE);
     downloadRequest.SetProgressCallback(OnDownloadUpdate);
-    downloadRequest.SetOutputFile(g_Downloads[g_iCurrentDownload][DL_SAVE]);
+    downloadRequest.SetOutputFile(g_Downloads[g_iCurrentDownload].DL_SAVE);
     downloadRequest.GET();
     delete downloadRequest;
 }
-
 
 // Download updated
 public void OnDownloadUpdate(System2HTTPRequest request, int dlTotal, int dlNow, int ulTotal, int ulNow)
 {
     // Save the download bytes in kilobytes
-    g_Downloads[g_iCurrentDownload][DL_CURRENT] = dlNow / 1024.0;
-    g_Downloads[g_iCurrentDownload][DL_TOTAL] = dlTotal / 1024.0;
+    g_Downloads[g_iCurrentDownload].DL_CURRENT = dlNow / 1024.0;
+    g_Downloads[g_iCurrentDownload].DL_TOTAL = dlTotal / 1024.0;
 
     // Show status
     SendCurrentStatus();
@@ -2975,12 +2806,12 @@ public void OnDownloadFinished(bool success, const char[] error, System2HTTPRequ
     // Finished with Error?
     if (!success)
     {
-        if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+        if (IsClientValid(g_Downloads[g_iCurrentDownload].DL_CLIENT))
         {
-            CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Failed", detailError);
+            CPrintToChat(g_Downloads[g_iCurrentDownload].DL_CLIENT, "%s %t", g_sTagChat, "Failed", detailError);
         }
 
-        Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE], detailError);
+        Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload].DL_CLIENT, g_Downloads[g_iCurrentDownload].DL_NAME, g_Downloads[g_iCurrentDownload].DL_FILE, detailError);
 
         // Stop
         StopDownload();
@@ -2990,23 +2821,23 @@ public void OnDownloadFinished(bool success, const char[] error, System2HTTPRequ
         char extractPath[PLATFORM_MAX_PATH + 1];
         
         // Create path to extract to, this is the unique path
-        Format(extractPath, sizeof(extractPath), "%s/%s", g_sPluginPath, g_Downloads[g_iCurrentDownload][DL_ID]);
+        Format(extractPath, sizeof(extractPath), "%s/%s", g_sPluginPath, g_Downloads[g_iCurrentDownload].DL_ID);
 
         // Only extract it if it's not a .bsp file
-        if (!StrEndsWith(g_Downloads[g_iCurrentDownload][DL_SAVE], ".bsp"))
+        if (!StrEndsWith(g_Downloads[g_iCurrentDownload].DL_SAVE, ".bsp"))
         {
             // Now extract it
-            System2_Extract(OnExtracted, g_Downloads[g_iCurrentDownload][DL_SAVE], extractPath,0, g_bForce32Bit);
+            System2_Extract(OnExtracted, g_Downloads[g_iCurrentDownload].DL_SAVE, extractPath,0, g_bForce32Bit);
         }
         else
         {
             char fileName[128];
 
             // Move .bsp files directly to the extract path
-            GetFileName(g_Downloads[g_iCurrentDownload][DL_SAVE], fileName, sizeof(fileName));
+            GetFileName(g_Downloads[g_iCurrentDownload].DL_SAVE, fileName, sizeof(fileName));
             Format(extractPath, sizeof(extractPath), "%s/%s", extractPath, fileName);
 
-            System2_CopyFile(CopyFinished, g_Downloads[g_iCurrentDownload][DL_SAVE], extractPath, true);
+            System2_CopyFile(CopyFinished, g_Downloads[g_iCurrentDownload].DL_SAVE, extractPath, true);
         }
     }
 }
@@ -3031,16 +2862,6 @@ void StopDownload()
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 /*
 **************
 
@@ -3049,21 +2870,18 @@ Extract
 **************
 */
 
-
-
-
 // Extract Status
 public void OnExtracted(bool success, const char[] command, System2ExecuteOutput output)
 {
     // Error?
     if (!success || (output != null && output.ExitStatus != 0))
     {
-        if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+        if (IsClientValid(g_Downloads[g_iCurrentDownload].DL_CLIENT))
         {
-            CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Failed", command);
+            CPrintToChat(g_Downloads[g_iCurrentDownload].DL_CLIENT, "%s %t", g_sTagChat, "Failed", command);
         }
 
-        Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE], command);
+        Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload].DL_CLIENT, g_Downloads[g_iCurrentDownload].DL_NAME, g_Downloads[g_iCurrentDownload].DL_FILE, command);
 
         // Stop
         StopDownload();
@@ -3075,7 +2893,7 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
         
 
         // Format unique file path
-        Format(extractPath, sizeof(extractPath), "%s/%s", g_sPluginPath, g_Downloads[g_iCurrentDownload][DL_ID]);
+        Format(extractPath, sizeof(extractPath), "%s/%s", g_sPluginPath, g_Downloads[g_iCurrentDownload].DL_ID);
 
         // What we found?
         int found = SearchForFolders(extractPath, 0);
@@ -3085,9 +2903,9 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
         {
             // We need to find at least a .bsp or .nav file!
             // Only nav?
-            if (found == 2 && IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+            if (found == 2 && IsClientValid(g_Downloads[g_iCurrentDownload].DL_CLIENT))
             {
-                CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "OnlyNav");
+                CPrintToChat(g_Downloads[g_iCurrentDownload].DL_CLIENT, "%s %t", g_sTagChat, "OnlyNav");
             }
 
 
@@ -3102,7 +2920,7 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
                 File file;
                 bool duplicate;
 
-                int arraySize = GetArraySize(g_Downloads[g_iCurrentDownload][DL_FTPFILES]);
+                int arraySize = GetArraySize(g_Downloads[g_iCurrentDownload].DL_FTPFILES);
 
 
                 // Path to downloadlist
@@ -3128,7 +2946,7 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
                     for (int i=0; i < arraySize; i++)
                     {
                         // First get content
-                        GetArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], i, content, sizeof(content));
+                        GetArrayString(g_Downloads[g_iCurrentDownload].DL_FTPFILES, i, content, sizeof(content));
 
 
                         // No .bsp or .nav files
@@ -3203,7 +3021,7 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
                 
                 
                 // Set new mode
-                g_Downloads[g_iCurrentDownload][DL_MODE] = MODUS_COMPRESS;
+                g_Downloads[g_iCurrentDownload].DL_MODE = MODUS_COMPRESS;
 
 
                 // Show status
@@ -3211,7 +3029,7 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
                 
                 
                 // Get first File
-                GetArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], 0, file, sizeof(file));
+                GetArrayString(g_Downloads[g_iCurrentDownload].DL_FILES, 0, file, sizeof(file));
                 
                 // Get Archive
                 Format(archive, sizeof(archive), "%s.bz2", file);
@@ -3223,16 +3041,16 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
             else
             {
                 // Mark as finished
-                g_Downloads[g_iCurrentDownload][DL_MODE] = MODUS_FINISH;
+                g_Downloads[g_iCurrentDownload].DL_MODE = MODUS_FINISH;
 
                 // No uploading.
                 // We are finished :)
-                if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+                if (IsClientValid(g_Downloads[g_iCurrentDownload].DL_CLIENT))
                 {
-                    CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Finish", g_Downloads[g_iCurrentDownload][DL_NAME]);
+                    CPrintToChat(g_Downloads[g_iCurrentDownload].DL_CLIENT, "%s %t", g_sTagChat, "Finish", g_Downloads[g_iCurrentDownload].DL_NAME);
                 }
 
-                Log("%L: Downloading Map %s(%s) SUCCEEDED", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE]);
+                Log("%L: Downloading Map %s(%s) SUCCEEDED", g_Downloads[g_iCurrentDownload].DL_CLIENT, g_Downloads[g_iCurrentDownload].DL_NAME, g_Downloads[g_iCurrentDownload].DL_FILE);
 
                 SendCurrentStatus();
 
@@ -3244,22 +3062,17 @@ public void OnExtracted(bool success, const char[] command, System2ExecuteOutput
         else
         {
             // We found no .bsp file...
-            if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+            if (IsClientValid(g_Downloads[g_iCurrentDownload].DL_CLIENT))
             {
-                CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Invalid");
+                CPrintToChat(g_Downloads[g_iCurrentDownload].DL_CLIENT, "%s %t", g_sTagChat, "Invalid");
             }
 
-            Log("%L: Downloading Map %s(%s) FAILED: Found no .bsp file", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE]);
+            Log("%L: Downloading Map %s(%s) FAILED: Found no .bsp file", g_Downloads[g_iCurrentDownload].DL_CLIENT, g_Downloads[g_iCurrentDownload].DL_NAME, g_Downloads[g_iCurrentDownload].DL_FILE);
 
             StopDownload();
         }
     }
 }
-
-
-
-
-
 
 /*
     Searching for folders and files
@@ -3302,13 +3115,13 @@ int SearchForFolders(char[] path, int found)
                 else if (StrEndsWith(content, ".nav") && type == FileType_File)
                 {
                     // Add File to file list, for uploading
-                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
+                    PushArrayString(g_Downloads[g_iCurrentDownload].DL_FILES, newPath);
 
 
                     // Copy nav to maps folder
                     Format(content, sizeof(content), "maps/%s", content);
 
-                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
+                    PushArrayString(g_Downloads[g_iCurrentDownload].DL_FTPFILES, content);
                     System2_CopyFile(CopyFinished, newPath, content, false);
 
                     // We found a nav
@@ -3321,13 +3134,13 @@ int SearchForFolders(char[] path, int found)
                     if (StrContains(content, "read", false) == -1 && StrContains(content, "change", false) == -1 && StrContains(content, "about", false) == -1 && StrContains(content, "contact", false) == -1 && StrContains(content, "credits", false) == -1 && StrContains(content, "install", false) == -1)
                     {
                         // Add File to file list, for uploading
-                        PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
+                        PushArrayString(g_Downloads[g_iCurrentDownload].DL_FILES, newPath);
 
 
                         // Copy txt to maps folder
                         Format(content, sizeof(content), "maps/%s", content);
 
-                        PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
+                        PushArrayString(g_Downloads[g_iCurrentDownload].DL_FTPFILES, content);
                         System2_CopyFile(CopyFinished, newPath, content, false);
                     }
                 }
@@ -3336,13 +3149,13 @@ int SearchForFolders(char[] path, int found)
                 else if ((StrEndsWith(content, ".jpg") || StrEndsWith(content, ".jpeg")) && type == FileType_File)
                 {
                     // Add File to file list, for uploading
-                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
+                    PushArrayString(g_Downloads[g_iCurrentDownload].DL_FILES, newPath);
 
 
                     // Copy jpg to maps folder
                     Format(content, sizeof(content), "maps/%s", content);
 
-                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], content);
+                    PushArrayString(g_Downloads[g_iCurrentDownload].DL_FTPFILES, content);
                     System2_CopyFile(CopyFinished, newPath, content, false);
                 }
 
@@ -3353,13 +3166,13 @@ int SearchForFolders(char[] path, int found)
 
 
                     // Add File to file list, for uploading
-                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], newPath);
+                    PushArrayString(g_Downloads[g_iCurrentDownload].DL_FILES, newPath);
 
 
                     // Copy map to maps folder
                     Format(buff, sizeof(buff), "maps/%s", content);
 
-                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], buff);
+                    PushArrayString(g_Downloads[g_iCurrentDownload].DL_FTPFILES, buff);
                     System2_CopyFile(CopyFinished, newPath, buff, false);
 
 
@@ -3469,13 +3282,10 @@ int SearchForFolders(char[] path, int found)
                             delete maps;
                         }
                     }
-
-
-
                     // Notice new map, so admin know it's base name
-                    if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+                    if (IsClientValid(g_Downloads[g_iCurrentDownload].DL_CLIENT))
                     {
-                        CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "FoundMap", content);
+                        CPrintToChat(g_Downloads[g_iCurrentDownload].DL_CLIENT, "%s %t", g_sTagChat, "FoundMap", content);
                     }
 
                     // Yes, we found a a .bsp file :) 
@@ -3500,13 +3310,6 @@ int SearchForFolders(char[] path, int found)
     return found;
 }
 
-
-
-
-
-
-
-
 /*
 **************
 
@@ -3514,9 +3317,6 @@ Copying
 
 **************
 */
-
-
-
 
 // This allow us to copy a known folder to the gamedir
 void CopyToGameDir(const char[] path, const char[] cur)
@@ -3565,8 +3365,8 @@ void CopyToGameDir(const char[] path, const char[] cur)
                     System2_CopyFile(CopyFinished, buffer, file, false);
 
                     // Update file count
-                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], buffer);
-                    PushArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], file);
+                    PushArrayString(g_Downloads[g_iCurrentDownload].DL_FILES, buffer);
+                    PushArrayString(g_Downloads[g_iCurrentDownload].DL_FTPFILES, file);
                 }
             }
         }
@@ -3575,10 +3375,6 @@ void CopyToGameDir(const char[] path, const char[] cur)
         delete dir;
     }
 }
-
-
-
-
 
 // Copy finished
 public void CopyFinished(bool success, char[] from, char[] to, any extractOnFinish)
@@ -3594,12 +3390,6 @@ public void CopyFinished(bool success, char[] from, char[] to, any extractOnFini
     }
 }
 
-
-
-
-
-
-
 /*
 **************
 
@@ -3608,21 +3398,18 @@ Compressing and Uploading
 **************
 */
 
-
-
-
 // Compress updated
 public void OnCompressed(bool success, const char[] command, System2ExecuteOutput output)
 {
     // Error?
     if (!success || output.ExitStatus != 0)
     {
-        if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+        if (IsClientValid(g_Downloads[g_iCurrentDownload].DL_CLIENT))
         {
-            CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Failed", command);
+            CPrintToChat(g_Downloads[g_iCurrentDownload].DL_CLIENT, "%s %t", g_sTagChat, "Failed", command);
         }
 
-        Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE], command);
+        Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload].DL_CLIENT, g_Downloads[g_iCurrentDownload].DL_NAME, g_Downloads[g_iCurrentDownload].DL_FILE, command);
 
         // Stop
         StopDownload();
@@ -3635,7 +3422,7 @@ public void OnCompressed(bool success, const char[] command, System2ExecuteOutpu
         
         
         // Update compressed files
-        g_Downloads[g_iCurrentDownload][DL_FINISH]++;
+        g_Downloads[g_iCurrentDownload].DL_FINISH++;
 
 
         // Show status
@@ -3643,15 +3430,15 @@ public void OnCompressed(bool success, const char[] command, System2ExecuteOutpu
 
 
         // All files compressed?
-        if (g_Downloads[g_iCurrentDownload][DL_FINISH] == GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]))
+        if (g_Downloads[g_iCurrentDownload].DL_FINISH == GetArraySize(g_Downloads[g_iCurrentDownload].DL_FILES))
         {
             // Clean counter, we need it another time ;)
-            g_Downloads[g_iCurrentDownload][DL_FINISH] = 0;
+            g_Downloads[g_iCurrentDownload].DL_FINISH = 0;
 
 
             // Get first File
-            GetArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], 0, file, sizeof(file));
-            GetArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], 0, archive, sizeof(archive));
+            GetArrayString(g_Downloads[g_iCurrentDownload].DL_FILES, 0, file, sizeof(file));
+            GetArrayString(g_Downloads[g_iCurrentDownload].DL_FTPFILES, 0, archive, sizeof(archive));
 
 
             // Get Archive and remote path
@@ -3660,7 +3447,7 @@ public void OnCompressed(bool success, const char[] command, System2ExecuteOutpu
 
 
             // Set new mode
-            g_Downloads[g_iCurrentDownload][DL_MODE] = MODUS_UPLOAD;
+            g_Downloads[g_iCurrentDownload].DL_MODE = MODUS_UPLOAD;
 
             
             // Upload this file
@@ -3680,7 +3467,7 @@ public void OnCompressed(bool success, const char[] command, System2ExecuteOutpu
             }
             else
             {
-                uploadRequest.SetAuthentication(g_sLogin[g_Downloads[g_iCurrentDownload][DL_CLIENT]][0], g_sLogin[g_Downloads[g_iCurrentDownload][DL_CLIENT]][1]);
+                uploadRequest.SetAuthentication(g_sLogin[g_Downloads[g_iCurrentDownload].DL_CLIENT][0], g_sLogin[g_Downloads[g_iCurrentDownload].DL_CLIENT][1]);
             }
 
             uploadRequest.StartRequest();
@@ -3689,7 +3476,7 @@ public void OnCompressed(bool success, const char[] command, System2ExecuteOutpu
         else
         {
             // Get next File
-            GetArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], g_Downloads[g_iCurrentDownload][DL_FINISH], file, sizeof(file));
+            GetArrayString(g_Downloads[g_iCurrentDownload].DL_FILES, g_Downloads[g_iCurrentDownload].DL_FINISH, file, sizeof(file));
             
 
             // Get Archive
@@ -3703,23 +3490,19 @@ public void OnCompressed(bool success, const char[] command, System2ExecuteOutpu
     }
 }
 
-
-
-
-
 // Upload finished
 public void OnUploadFinished(bool success, const char[] error, System2FTPRequest request, System2FTPResponse response)
 {
     // Finished with Error?
     if (!success)
     {
-        if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+        if (IsClientValid(g_Downloads[g_iCurrentDownload].DL_CLIENT))
         {
-            CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Failed", error);
+            CPrintToChat(g_Downloads[g_iCurrentDownload].DL_CLIENT, "%s %t", g_sTagChat, "Failed", error);
         }
 
 
-        Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE], error);
+        Log("%L: Downloading Map %s(%s) FAILED: %s", g_Downloads[g_iCurrentDownload].DL_CLIENT, g_Downloads[g_iCurrentDownload].DL_NAME, g_Downloads[g_iCurrentDownload].DL_FILE, error);
 
         // Stop
         StopDownload();
@@ -3732,14 +3515,14 @@ public void OnUploadFinished(bool success, const char[] error, System2FTPRequest
         
         
         // Update uploaded files
-        g_Downloads[g_iCurrentDownload][DL_FINISH]++;
+        g_Downloads[g_iCurrentDownload].DL_FINISH++;
 
 
         // All files uploaded?
-        if (g_Downloads[g_iCurrentDownload][DL_FINISH] == GetArraySize(g_Downloads[g_iCurrentDownload][DL_FILES]))
+        if (g_Downloads[g_iCurrentDownload].DL_FINISH == GetArraySize(g_Downloads[g_iCurrentDownload].DL_FILES))
         {
             // Mark as finished
-            g_Downloads[g_iCurrentDownload][DL_MODE] = MODUS_FINISH;
+            g_Downloads[g_iCurrentDownload].DL_MODE = MODUS_FINISH;
 
 
             // Update status
@@ -3747,12 +3530,12 @@ public void OnUploadFinished(bool success, const char[] error, System2FTPRequest
 
 
             // We are finished :)
-            if (IsClientValid(g_Downloads[g_iCurrentDownload][DL_CLIENT]))
+            if (IsClientValid(g_Downloads[g_iCurrentDownload].DL_CLIENT))
             {
-                CPrintToChat(g_Downloads[g_iCurrentDownload][DL_CLIENT], "%s %t", g_sTagChat, "Finish", g_Downloads[g_iCurrentDownload][DL_NAME]);
+                CPrintToChat(g_Downloads[g_iCurrentDownload].DL_CLIENT, "%s %t", g_sTagChat, "Finish", g_Downloads[g_iCurrentDownload].DL_NAME);
             }
 
-            Log("%L: Downloading Map %s(%s) SUCCEEDED", g_Downloads[g_iCurrentDownload][DL_CLIENT], g_Downloads[g_iCurrentDownload][DL_NAME], g_Downloads[g_iCurrentDownload][DL_FILE]);
+            Log("%L: Downloading Map %s(%s) SUCCEEDED", g_Downloads[g_iCurrentDownload].DL_CLIENT, g_Downloads[g_iCurrentDownload].DL_NAME, g_Downloads[g_iCurrentDownload].DL_FILE);
 
             // Stop here
             StopDownload();
@@ -3760,8 +3543,8 @@ public void OnUploadFinished(bool success, const char[] error, System2FTPRequest
         else
         {
             // Get next File
-            GetArrayString(g_Downloads[g_iCurrentDownload][DL_FILES], g_Downloads[g_iCurrentDownload][DL_FINISH], file, sizeof(file));
-            GetArrayString(g_Downloads[g_iCurrentDownload][DL_FTPFILES], g_Downloads[g_iCurrentDownload][DL_FINISH], archive, sizeof(archive));
+            GetArrayString(g_Downloads[g_iCurrentDownload].DL_FILES, g_Downloads[g_iCurrentDownload].DL_FINISH, file, sizeof(file));
+            GetArrayString(g_Downloads[g_iCurrentDownload].DL_FTPFILES, g_Downloads[g_iCurrentDownload].DL_FINISH, archive, sizeof(archive));
 
 
             // Show status
@@ -3783,15 +3566,12 @@ public void OnUploadFinished(bool success, const char[] error, System2FTPRequest
     }
 }
 
-
-
-
 // Upload updated
 public void OnUploadProgress(System2FTPRequest request, int dlTotal, int dlNow, int ulTotal, int ulNow)
 {
     // Save the download bytes in kilobytes
-    g_Downloads[g_iCurrentDownload][DL_CURRENT] = ulNow / 1024.0;
-    g_Downloads[g_iCurrentDownload][DL_TOTAL] = ulTotal / 1024.0;
+    g_Downloads[g_iCurrentDownload].DL_CURRENT = ulNow / 1024.0;
+    g_Downloads[g_iCurrentDownload].DL_TOTAL = ulTotal / 1024.0;
 
     // Show status
     SendCurrentStatus();
